@@ -1,0 +1,5 @@
+*.DS_Store
+.idea
+data/
+*.ipynb_checkpoints
+*__pycache__/
