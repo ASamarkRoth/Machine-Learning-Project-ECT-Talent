@@ -10,7 +10,7 @@ See [Machine Learning Methods for Track Classification in the AT-TPC][1].
 
 ## Prerequisites
 
-* `pytpc` Found [here][2].
+* `pytpc` (found [here][2])
 * `click`
 * `pandas`
 * `numpy`
@@ -19,3 +19,4 @@ See [Machine Learning Methods for Track Classification in the AT-TPC][1].
 * `h5py`
 * `pyyaml`
 * `scipy`
+* `scikit-learn`
