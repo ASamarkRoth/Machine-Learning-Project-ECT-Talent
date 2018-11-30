@@ -27,6 +27,7 @@ def _l(a):
 
 
 def real_labeled(projection, data_dir, save_path, prefix):
+    print('Processing data...')
     data = []
     for run in RUNS:
         events_file = os.path.join(data_dir, 'run_{}.h5'.format(run))
@@ -170,6 +171,7 @@ def real_labeled(projection, data_dir, save_path, prefix):
 
 
 def real_unlabeled(projection, data_dir, save_path, prefix):
+    print('Processing data...')
     data = []
     for run in RUNS:
         events_file = os.path.join(data_dir, 'run_{}.h5'.format(run))
@@ -245,6 +247,8 @@ def real_unlabeled(projection, data_dir, save_path, prefix):
 
 
 def simulated(projection, noise, num_events, data_dir, save_path, prefix):
+    print('Processing data...')
+
     proton_events = pytpc.HDFDataFile(data_dir + prefix + 'proton.h5', 'r')
     carbon_events = pytpc.HDFDataFile(data_dir + prefix + 'carbon.h5', 'r')
 
@@ -393,7 +397,7 @@ def simulated(projection, noise, num_events, data_dir, save_path, prefix):
 @click.argument('type', type=click.Choice(['real', 'sim']), nargs=1)
 @click.argument('projection', type=click.Choice(['xy', 'zy']), nargs=1)
 @click.argument('data_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
-@click.option('--save_path', type=click.Path(exists=False, file_okay=False, dir_okay=True), default='',
+@click.option('--save_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), default='',
               help='Where to save the generated data-processing.')
 @click.option('--prefix', type=click.STRING, default='',
               help='Prefix for the saved file names. By default, there is no prefix.')
@@ -403,7 +407,7 @@ def simulated(projection, noise, num_events, data_dir, save_path, prefix):
               help='Whether or not to add artificial noise to simulated data-processing.')
 @click.option('--num_events', type=click.INT, default=40000,
               help='Number of events of simulated data-processing to use.')
-def main(type, projection, data_dir, save_path, prefix, labeled, noise, num_events):
+def main(type, projection, data_dir, save_dir, prefix, labeled, noise, num_events):
     """This script will generate and save images from ATTPC event data to be used for CNN training.
 
     When using real data, this script will look for runs 0130 and 0210, as these are the runs that have
@@ -411,11 +415,11 @@ def main(type, projection, data_dir, save_path, prefix, labeled, noise, num_even
     """
     if type == 'real':
         if labeled:
-            real_labeled(projection, data_dir, save_path, prefix)
+            real_labeled(projection, data_dir, save_dir, prefix)
         else:
-            real_unlabeled(projection, data_dir, save_path, prefix)
+            real_unlabeled(projection, data_dir, save_dir, prefix)
     else:
-        simulated(projection, noise, num_events, data_dir, save_path, prefix)
+        simulated(projection, noise, num_events, data_dir, save_dir, prefix)
 
 
 if __name__ == '__main__':

@@ -22,7 +22,7 @@ def _mean_dist(event):
 
 
 @click.command()
-@click.argument('save_path', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
+@click.argument('save_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
 @click.option('--tilt', type=click.BOOL, default=True, help='Whether or not the events should be simulated with tilt.')
 @click.option('--point_cutoff', type=click.INT, default=150,
               help='The minimum number of points required to be in an event.')
@@ -30,13 +30,13 @@ def _mean_dist(event):
 @click.option('--num_events', type=click.INT, default=40000, help='The number of events that should be created.')
 @click.option('--prefix', type=click.STRING, default='',
               help='Prefix for the saved file names. By default, there is no prefix.')
-def simulate_events(save_path, tilt, point_cutoff, mean_dist, num_events, prefix):
+def simulate_events(save_dir, tilt, point_cutoff, mean_dist, num_events, prefix):
     """Simulates proton and carbon events as specified by the given options.
 
     The path to which events should be saved is given as an argument.
     """
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
     # Proton Events
     with open('config/config_e15503b_p{}.yml'.format('_tilt' if tilt else ''), 'r') as f:
@@ -56,7 +56,7 @@ def simulate_events(save_path, tilt, point_cutoff, mean_dist, num_events, prefix
 
     sim = EventSimulator(config)
 
-    proton_file_path = os.path.join(save_path, prefix + 'proton.h5')
+    proton_file_path = os.path.join(save_dir, prefix + 'proton.h5')
 
     with HDFDataFile(proton_file_path, 'w') as hdf:
         evt_id = 0
@@ -102,7 +102,7 @@ def simulate_events(save_path, tilt, point_cutoff, mean_dist, num_events, prefix
 
     sim = EventSimulator(config)
 
-    carbon_file_path = os.path.join(save_path, prefix + 'carbon.h5')
+    carbon_file_path = os.path.join(save_dir, prefix + 'carbon.h5')
 
     with HDFDataFile(carbon_file_path, 'w') as hdf:
         evt_id = 0
