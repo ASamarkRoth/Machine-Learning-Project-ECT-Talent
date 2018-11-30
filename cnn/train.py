@@ -1,10 +1,9 @@
-"""Script for training a CNN classifying using the VGG16 architecture with ImageNet weights.
+"""Script for training a CNN classifier using the VGG16 architecture with ImageNet weights.
 The command line interface provides various options for training. The program expects data that can be loaded
 by `utils.data.load_image_h5`.
 
 Author: Ryan Strauss
 """
-import json
 
 import click
 import numpy as np
@@ -18,37 +17,40 @@ TARGETS = 1
 
 
 @click.command()
-@click.argument('train_path', type=click.Path(exists=True, file_okay=True, dir_okay=False), nargs=1)
-@click.argument('save_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
+@click.argument('data', type=click.Path(exists=True, file_okay=True, dir_okay=False), nargs=1)
+@click.argument('log_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
 @click.option('--epochs', type=click.INT, default=10, nargs=1, help='Number of training epochs.')
 @click.option('--batch_size', type=click.INT, default=32, nargs=1, help='Batch size to use for training.')
-@click.option('--train_combine', is_flag=True,
+@click.option('--data_combine', is_flag=True,
               help='If flag is set, the training and test sets within the HDF5 file pointed '
-                   'to by train_path will be combined into a single training set.')
+                   'to by `data` will be combined into a single training set.')
 @click.option('--binary', type=click.BOOL, default=True, nargs=1,
-              help='If true, the labeled will be collapsed to binary values, where any non-zero label will become a 1.')
+              help='If true, the labels will be collapsed to binary values, where any non-zero label will become a 1.')
 @click.option('--lr', type=click.FLOAT, default=0.00001, nargs=1, help='Learning rate to use during training.')
 @click.option('--decay', type=click.FLOAT, default=0., nargs=1, help='Learning rate decay to use during training.')
 @click.option('--freeze', is_flag=True,
               help='If flag is set, the convolutional layers of the model will be frozen. Only the '
                    'fully-connected classification layers will have their weights updated.')
-@click.option('--examples_limit', type=click.INT, default=30000, nargs=1,
+@click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
               help='Limit on the number of training examples to use during training.')
-def main(train_path, save_dir, epochs, batch_size, train_combine, binary, lr, decay, freeze, examples_limit):
+def main(data, log_dir, epochs, batch_size, data_combine, binary, lr, decay, freeze, examples_limit):
     """This script will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
-    assert train_path.endswith('.h5'), 'train_path must point to an HDF5 file'
+    assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
 
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
 
     # Load data
-    if train_combine:
-        a, b = load_image_h5(train_path, categorical=True, binary=binary)
+    if data_combine:
+        a, b = load_image_h5(data, categorical=True, binary=binary)
         train = np.concatenate([a[FEATURES], b[FEATURES]], axis=0), np.concatenate([a[TARGETS], b[TARGETS]], axis=0)
     else:
-        train, _ = load_image_h5(train_path, categorical=True, binary=binary)
+        train, _ = load_image_h5(data, categorical=True, binary=binary)
 
     num_categories = train[TARGETS].shape[1]
+
+    if examples_limit == -1:
+        examples_limit = train[TARGETS].shape[0]
 
     # Build model
     vgg16_base = tf.keras.applications.VGG16(include_top=False, input_shape=(128, 128, 3), weights='imagenet')
@@ -70,33 +72,27 @@ def main(train_path, save_dir, epochs, batch_size, train_combine, binary, lr, de
                   optimizer=opt,
                   metrics=['accuracy'])
 
-    ckpt_path = os.path.join(save_dir, 'ckpt', 'weights.{epoch:02d}-{val_loss:.2f}')
+    os.makedirs(os.path.join(log_dir, 'ckpt'))
+    ckpt_path = os.path.join(log_dir, 'ckpt', 'epoch-{epoch:02d}.h5')
 
     # Setup checkpoint callback
     ckpt_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_path,
-                                                       save_weights_only=True,
-                                                       period=2,
+                                                       save_weights_only=False,
+                                                       period=1,
                                                        save_best_only=False,
                                                        monitor='val_loss')
+
+    # Setup TensorBoard callback
+    tb_callback = tf.keras.callbacks.TensorBoard(log_dir)
+
     # Train the model
-    history = model.fit(train[FEATURES][:examples_limit],
-                        train[TARGETS][:examples_limit],
-                        epochs=epochs,
-                        batch_size=batch_size,
-                        validation_split=0.15,
-                        verbose=1,
-                        callbacks=[ckpt_callback])
-
-    # Save the training history
-    hist_json = json.dumps(history.history)
-    hist_path = os.path.join(save_dir, 'history.json')
-    with open(hist_path, 'w') as file:
-        file.write(hist_json)
-
-    # Save the model
-    model_path = os.path.join(save_dir, 'model.json')
-    with open(model_path, 'w') as file:
-        file.write(model.to_json())
+    model.fit(train[FEATURES][:examples_limit],
+              train[TARGETS][:examples_limit],
+              epochs=epochs,
+              batch_size=batch_size,
+              validation_split=0.15,
+              verbose=1,
+              callbacks=[tb_callback, ckpt_callback])
 
 
 if __name__ == '__main__':
