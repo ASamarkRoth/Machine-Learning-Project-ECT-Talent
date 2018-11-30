@@ -1,1 +1,21 @@
-# deep-learning-classification
+[1]: https://arxiv.org/abs/1810.10350
+[2]: https://github.com/ATTPC/pytpc
+
+# Deep Learning Methods for AT-TPC Event Classification
+
+This repository contains research code that explores the use of deep learning methods to classify AT-TPC events
+based on the product of the reaction.
+
+See [Machine Learning Methods for Track Classification in the AT-TPC][1].
+
+## Prerequisites
+
+* `pytpc` Found [here][2].
+* `click`
+* `pandas`
+* `numpy`
+* `tensorflow`
+* `matplotlib`
+* `h5py`
+* `pyyaml`
+* `scipy`
