@@ -33,12 +33,17 @@ TARGETS = 1
                    'fully-connected classification layers will have their weights updated.')
 @click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
               help='Limit on the number of training examples to use during training.')
-def main(data, log_dir, epochs, batch_size, data_combine, binary, lr, decay, freeze, examples_limit):
+@click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
+def main(data, log_dir, epochs, batch_size, data_combine, binary, lr, decay, freeze, examples_limit, seed):
     """This script will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
     assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
+
+    # Set random seeds
+    np.random.seed(seed)
+    tf.set_random_seed(seed)
 
     # Load data
     if data_combine:
