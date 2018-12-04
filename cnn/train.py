@@ -9,6 +9,7 @@ import click
 import numpy as np
 import os
 import tensorflow as tf
+from sklearn.utils.class_weight import compute_class_weight
 
 from utils.data import load_image_h5
 
@@ -24,19 +25,26 @@ TARGETS = 1
 @click.option('--data_combine', is_flag=True,
               help='If flag is set, the training and test sets within the HDF5 file pointed '
                    'to by `data` will be combined into a single training set.')
+@click.option('--rebalance', is_flag=True,
+              help='If flag is set, class weighting will be used during training to rebalance '
+                   'an uneven distribution of classes in the training set.')
 @click.option('--binary', type=click.BOOL, default=True, nargs=1,
               help='If true, the labels will be collapsed to binary values, where any non-zero label will become a 1.')
 @click.option('--lr', type=click.FLOAT, default=0.00001, nargs=1, help='Learning rate to use during training.')
 @click.option('--decay', type=click.FLOAT, default=0., nargs=1, help='Learning rate decay to use during training.')
+@click.option('--validation_split', type=click.FLOAT, default=0.15, nargs=1,
+              help='Percentage of training set to use for validation. Should be in range (0, 1). Defaults to 0.15.')
 @click.option('--freeze', is_flag=True,
               help='If flag is set, the convolutional layers of the model will be frozen. Only the '
                    'fully-connected classification layers will have their weights updated.')
 @click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
               help='Limit on the number of training examples to use during training.')
 @click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
-def main(data, log_dir, epochs, batch_size, data_combine, binary, lr, decay, freeze, examples_limit, seed):
+def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze,
+         examples_limit, seed):
     """This script will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
     assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
+    assert 0 < validation_split < 1, 'validation_split must be in range (0, 1)'
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -72,13 +80,22 @@ def main(data, log_dir, epochs, batch_size, data_combine, binary, lr, decay, fre
             layer.trainable = False
 
     opt = tf.keras.optimizers.Adam(lr=lr, decay=decay)
+    loss = 'binary_crossentropy' if num_categories == 2 else 'categorical_crossentropy'
 
-    model.compile(loss='binary_crossentropy' if num_categories == 2 else 'categorical_crossentropy',
+    model.compile(loss=loss,
                   optimizer=opt,
                   metrics=['accuracy'])
 
     os.makedirs(os.path.join(log_dir, 'ckpt'))
     ckpt_path = os.path.join(log_dir, 'ckpt', 'epoch-{epoch:02d}.h5')
+
+    # Get class weights
+    if rebalance:
+        targets_argmax = np.argmax(train[TARGETS], axis=1)
+        class_weight = compute_class_weight('balanced', np.unique(targets_argmax), targets_argmax)
+        class_weight = dict(enumerate(class_weight))
+    else:
+        class_weight = None
 
     # Setup checkpoint callback
     ckpt_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_path,
@@ -95,8 +112,9 @@ def main(data, log_dir, epochs, batch_size, data_combine, binary, lr, decay, fre
               train[TARGETS][:examples_limit],
               epochs=epochs,
               batch_size=batch_size,
-              validation_split=0.15,
+              validation_split=validation_split,
               verbose=1,
+              class_weight=class_weight,
               callbacks=[tb_callback, ckpt_callback])
 
 
