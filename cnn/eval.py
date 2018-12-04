@@ -23,11 +23,18 @@ TARGETS = 1
               help='If true, the labels will be collapsed to binary values, where any non-zero label will become a 1.')
 @click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
               help='Limit on the number of examples to use during testing.')
-def main(model_file, data, data_combine, binary, examples_limit):
+@click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
+def main(model_file, data, data_combine, binary, examples_limit, seed):
     """This script will evaluate a CNN classifier.
 
     Loss, accuracy, and classification metrics are printed to the console.
     """
+    assert model_file.endswith('.h5'), 'model_file must point to an HDF5 file'
+    assert data.endswith('.h5'), 'data must point to an HDF5 file'
+
+    # Set random seeds
+    np.random.seed(seed)
+    tf.set_random_seed(seed)
 
     # Load data
     if data_combine:
