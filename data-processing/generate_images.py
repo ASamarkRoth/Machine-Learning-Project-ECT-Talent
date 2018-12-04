@@ -396,22 +396,22 @@ def simulated(projection, noise, num_events, data_dir, save_path, prefix):
 @click.command()
 @click.argument('type', type=click.Choice(['real', 'sim']), nargs=1)
 @click.argument('projection', type=click.Choice(['xy', 'zy']), nargs=1)
-@click.argument('data_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
+@click.argument('data_dir', type=click.Path(exists=True, file_okay=False, dir_okay=True), nargs=1)
 @click.option('--save_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), default='',
-              help='Where to save the generated data-processing.')
+              help='Where to save the generated data.')
 @click.option('--prefix', type=click.STRING, default='',
               help='Prefix for the saved file names. By default, there is no prefix.')
 @click.option('--labeled', type=click.BOOL, default=True,
-              help='If true, only the labeled data-processing will be processed.')
+              help='If true, only the labeled data will be processed.')
 @click.option('--noise', type=click.BOOL, default=True,
               help='Whether or not to add artificial noise to simulated data-processing.')
 @click.option('--num_events', type=click.INT, default=40000,
-              help='Number of events of simulated data-processing to use.')
+              help='Number of events of simulated data to use.')
 def main(type, projection, data_dir, save_dir, prefix, labeled, noise, num_events):
     """This script will generate and save images from ATTPC event data to be used for CNN training.
 
     When using real data, this script will look for runs 0130 and 0210, as these are the runs that have
-    been partially hand-labelled.
+    been partially hand-labeled.
     """
     if type == 'real':
         if labeled:
