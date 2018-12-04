@@ -37,3 +37,6 @@ The script has three required arguments, `type`, `projection`, and `data_dir`, i
 specifying which dimensions to use when projecting the events into a 2-dimensional image.
 `data_dir` is the directory that contains the event data. Optional arguments are described
 in the command-line interface (pass `--help` as an argument).
+
+When using real data, this script will look for runs 0130 and 0210, as these are the runs that have
+been partially hand-labeled.
