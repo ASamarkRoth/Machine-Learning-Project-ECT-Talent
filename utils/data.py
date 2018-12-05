@@ -2,10 +2,12 @@
 
 Author: Ryan Strauss
 """
-
 import h5py
 import numpy as np
+import os
 import tensorflow as tf
+from scipy.sparse import load_npz
+from sklearn import preprocessing
 from tensorflow.keras.utils import to_categorical
 
 CLASS_NAMES = ['proton', 'carbon', 'junk']
@@ -77,10 +79,10 @@ def load_image_h5(path,
                            (i.e. proton vs. nonproton).
 
         Returns:
-            features (np.ndarray): The requested data as a tuple of the form (train, test), where train and
+            features (tuple): The requested data as a tuple of the form (train, test), where train and
                                    test each have the form (X, y).
-            targets (np.ndarray): The corresponding targets.
-            max_charge (float): The maximum charge from the returned training set, before normalization.
+            targets (tuple): The corresponding targets.
+            max_charge (float, optional): The maximum charge from the returned training set, before normalization.
 
     """
     h5 = h5py.File(path, 'r')
@@ -117,5 +119,58 @@ def load_image_h5(path,
 
     if max_charge:
         return (train_features, train_targets), (test_features, test_targets), mc
+
+    return (train_features, train_targets), (test_features, test_targets)
+
+
+def load_discretized_data(dir,
+                          prefix='',
+                          categorical=False,
+                          normalize=True,
+                          binary=False):
+    """Loads and returns the requested discretized data.
+
+        Args:
+            dir (str): Path to the directory containing the data.
+            prefix (str): Filename prefix of the data to be loaded.
+            categorical (bool): Indicator of whether or not targets should be returned as a 2D one-hot encoded array.
+            normalize (bool): Specifies whether or not to normalize the features.
+            binary (bool): Specifies whether or not the data should be framed as two-class
+                           (i.e. proton vs. nonproton).
+
+        Returns:
+            features (tuple): The requested data as a tuple of the form (train, test), where train and
+                                   test each have the form (X, y).
+            targets (tuple): The corresponding targets.
+
+    """
+    targets_filename = os.path.join(dir, prefix + 'targets.h5')
+    h5 = h5py.File(targets_filename, 'r')
+    train_targets = h5['train_targets'][:]
+    test_targets = h5['test_targets'][:]
+    h5.close()
+
+    train_features = load_npz(os.path.join(dir, prefix + 'train-features.npz'))
+    test_features = load_npz(os.path.join(dir, prefix + 'test-features.npz'))
+
+    if normalize:
+        train_features = preprocessing.normalize(train_features, axis=0)
+        test_features = preprocessing.normalize(test_features, axis=0)
+
+    num_categories = np.unique(train_targets).shape[0]
+
+    if binary:
+        for i in range(train_targets.shape[0]):
+            if train_targets[i] != 0:
+                train_targets[i] = 1
+        for i in range(test_targets.shape[0]):
+            if test_targets[i] != 0:
+                test_targets[i] = 1
+
+        num_categories = 2
+
+    if categorical:
+        train_targets = to_categorical(train_targets, num_categories).astype(np.int8)
+        test_targets = to_categorical(test_targets, num_categories).astype(np.int8)
 
     return (train_features, train_targets), (test_features, test_targets)
