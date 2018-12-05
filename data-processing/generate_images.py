@@ -11,7 +11,7 @@ import numpy as np
 import os
 import pandas as pd
 import pytpc
-from random import shuffle
+from sklearn.utils import shuffle
 
 from utils import data_discretization as dd
 
@@ -70,8 +70,7 @@ def real_labeled(projection, data_dir, save_path, prefix):
         event[0][:, 3] = log(event[0][:, 3])
 
     # Shuffle data-processing
-    shuffle(data)
-    shuffle(data)
+    data = shuffle(data)
 
     # Split into train and test sets
     partition = int(len(data) * 0.8)
@@ -191,8 +190,7 @@ def real_unlabeled(projection, data_dir, save_path, prefix):
         event[0][:, 3] = log(event[0][:, 3])
 
     # Shuffle data-processing
-    shuffle(data)
-    shuffle(data)
+    data = shuffle(data)
 
     # Normalize
     max_charge = np.array(list(map(lambda x: x[0][:, 3].max(), data))).max()
@@ -246,11 +244,11 @@ def real_unlabeled(projection, data_dir, save_path, prefix):
     h5.close()
 
 
-def simulated(projection, noise, num_events, data_dir, save_path, prefix):
+def simulated(projection, noise, data_dir, save_path, prefix):
     print('Processing data...')
 
-    proton_events = pytpc.HDFDataFile(data_dir + prefix + 'proton.h5', 'r')
-    carbon_events = pytpc.HDFDataFile(data_dir + prefix + 'carbon.h5', 'r')
+    proton_events = pytpc.HDFDataFile(os.path.join(data_dir, prefix + 'proton.h5'), 'r')
+    carbon_events = pytpc.HDFDataFile(os.path.join(data_dir, prefix + 'carbon.h5'), 'r')
 
     # Create empty arrays to hold data-processing
     data = []
@@ -284,7 +282,7 @@ def simulated(projection, noise, num_events, data_dir, save_path, prefix):
             print('Carbon event ' + str(i) + ' added.')
 
     # Create junk events
-    for i in range(num_events):
+    for i in range(len(proton_events)):
         xyzs = np.empty([1, 4])
         if noise:
             xyzs = dd.add_noise(xyzs).astype('float32')
@@ -300,7 +298,7 @@ def simulated(projection, noise, num_events, data_dir, save_path, prefix):
         event[0][:, 3] = log(event[0][:, 3])
 
     # Split into train and test sets
-    shuffle(data)
+    data = shuffle(data)
     partition = int(len(data) * 0.8)
     train = data[:partition]
     test = data[partition:]
@@ -400,14 +398,12 @@ def simulated(projection, noise, num_events, data_dir, save_path, prefix):
 @click.option('--save_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), default='',
               help='Where to save the generated data.')
 @click.option('--prefix', type=click.STRING, default='',
-              help='Prefix for the saved file names. By default, there is no prefix.')
+              help='Prefix for the saved file names and/or files to read in. By default, there is no prefix.')
 @click.option('--labeled', type=click.BOOL, default=True,
               help='If true, only the labeled data will be processed.')
 @click.option('--noise', type=click.BOOL, default=True,
-              help='Whether or not to add artificial noise to simulated data-processing.')
-@click.option('--num_events', type=click.INT, default=40000,
-              help='Number of events of simulated data to use.')
-def main(type, projection, data_dir, save_dir, prefix, labeled, noise, num_events):
+              help='Whether or not to add artificial noise to simulated data.')
+def main(type, projection, data_dir, save_dir, prefix, labeled, noise):
     """This script will generate and save images from ATTPC event data to be used for CNN training.
 
     When using real data, this script will look for runs 0130 and 0210, as these are the runs that have
@@ -419,7 +415,7 @@ def main(type, projection, data_dir, save_dir, prefix, labeled, noise, num_event
         else:
             real_unlabeled(projection, data_dir, save_dir, prefix)
     else:
-        simulated(projection, noise, num_events, data_dir, save_dir, prefix)
+        simulated(projection, noise, data_dir, save_dir, prefix)
 
 
 if __name__ == '__main__':
