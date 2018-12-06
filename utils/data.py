@@ -7,7 +7,7 @@ import numpy as np
 import os
 import tensorflow as tf
 from scipy.sparse import load_npz
-from sklearn import preprocessing
+from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.utils import to_categorical
 
 CLASS_NAMES = ['proton', 'carbon', 'junk']
@@ -126,7 +126,7 @@ def load_image_h5(path,
 def load_discretized_data(dir,
                           prefix='',
                           categorical=False,
-                          normalize=True,
+                          standardize=True,
                           binary=False):
     """Loads and returns the requested discretized data.
 
@@ -134,7 +134,7 @@ def load_discretized_data(dir,
             dir (str): Path to the directory containing the data.
             prefix (str): Filename prefix of the data to be loaded.
             categorical (bool): Indicator of whether or not targets should be returned as a 2D one-hot encoded array.
-            normalize (bool): Specifies whether or not to normalize the features.
+            standardize (bool): Specifies whether or not to standardize the data.
             binary (bool): Specifies whether or not the data should be framed as two-class
                            (i.e. proton vs. nonproton).
 
@@ -153,9 +153,10 @@ def load_discretized_data(dir,
     train_features = load_npz(os.path.join(dir, prefix + 'train-features.npz'))
     test_features = load_npz(os.path.join(dir, prefix + 'test-features.npz'))
 
-    if normalize:
-        train_features = preprocessing.normalize(train_features, axis=0)
-        test_features = preprocessing.normalize(test_features, axis=0)
+    if standardize:
+        scaler = StandardScaler(with_mean=False)
+        train_features = scaler.fit_transform(train_features)
+        test_features = scaler.transform(test_features)
 
     num_categories = np.unique(train_targets).shape[0]
 
