@@ -40,8 +40,9 @@ TARGETS = 1
 @click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
               help='Limit on the number of training examples to use during training.')
 @click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
+@click.option('--reverse_labels', is_flag=True, help='If flag is set, labels will be reversed.')
 def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze,
-         examples_limit, seed):
+         examples_limit, seed, reverse_labels):
     """This script will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
     assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
     assert 0 < validation_split < 1, 'validation_split must be in range (0, 1)'
@@ -55,10 +56,10 @@ def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr,
 
     # Load data
     if data_combine:
-        a, b = load_image_h5(data, categorical=True, binary=binary)
+        a, b = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
         train = np.concatenate([a[FEATURES], b[FEATURES]], axis=0), np.concatenate([a[TARGETS], b[TARGETS]], axis=0)
     else:
-        train, _ = load_image_h5(data, categorical=True, binary=binary)
+        train, _ = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
 
     num_categories = train[TARGETS].shape[1]
 
