@@ -29,7 +29,7 @@ TARGETS = 1
 @click.option('--binary', type=click.BOOL, default=True, nargs=1,
               help='If true, the labels will be collapsed to binary values, where any non-zero label will become a 1.')
 @click.option('--dropout', type=click.FLOAT, default=0.5, nargs=1, help='Dropout rate.')
-@click.option('--lr', type=click.FLOAT, default=0.00001, nargs=1, help='Learning rate to use during training.')
+@click.option('--lr', type=click.FLOAT, default=0.0001, nargs=1, help='Learning rate to use during training.')
 @click.option('--decay', type=click.FLOAT, default=0., nargs=1, help='Learning rate decay to use during training.')
 @click.option('--validation_split', type=click.FLOAT, default=0.15, nargs=1,
               help='Percentage of training set to use for validation. Should be in range (0, 1). Defaults to 0.15.')
