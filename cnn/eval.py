@@ -24,7 +24,8 @@ TARGETS = 1
 @click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
               help='Limit on the number of examples to use during testing.')
 @click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
-def main(model_file, data, data_combine, binary, examples_limit, seed):
+@click.option('--reverse_labels', is_flag=True, help='If flag is set, labels will be reversed.')
+def main(model_file, data, data_combine, binary, examples_limit, seed, reverse_labels):
     """This script will evaluate a CNN classifier.
 
     Loss, accuracy, and classification metrics are printed to the console.
@@ -38,10 +39,10 @@ def main(model_file, data, data_combine, binary, examples_limit, seed):
 
     # Load data
     if data_combine:
-        a, b = load_image_h5(data, categorical=True, binary=binary)
+        a, b = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
         test = np.concatenate([a[FEATURES], b[FEATURES]], axis=0), np.concatenate([a[TARGETS], b[TARGETS]], axis=0)
     else:
-        _, test = load_image_h5(data, categorical=True, binary=binary)
+        _, test = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
 
     if examples_limit == -1:
         examples_limit = test[TARGETS].shape[0]
@@ -56,9 +57,15 @@ def main(model_file, data, data_combine, binary, examples_limit, seed):
     preds = np.argmax(model.predict(test[FEATURES][:examples_limit]), axis=1)
 
     if binary:
-        target_names = [CLASS_NAMES[0], 'non-' + CLASS_NAMES[0]]
+        if reverse_labels:
+            target_names = [CLASS_NAMES[-1], 'non-' + CLASS_NAMES[-1]]
+        else:
+            target_names = [CLASS_NAMES[0], 'non-' + CLASS_NAMES[0]]
     else:
         target_names = CLASS_NAMES
+
+    if reverse_labels:
+        target_names = target_names[::-1]
 
     # Get classification metrics
     report = classification_report(np.argmax(test[TARGETS][:examples_limit], axis=1), preds,

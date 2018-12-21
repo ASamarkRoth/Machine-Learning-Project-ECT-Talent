@@ -65,7 +65,8 @@ def load_image_h5(path,
                   categorical=False,
                   flatten=False,
                   max_charge=False,
-                  binary=False):
+                  binary=False,
+                  reverse_labels=False):
     """Loads and returns the requested image data.
 
         Reads in the specified training data from HDF5 files and returns that data as a numpy array.
@@ -77,6 +78,7 @@ def load_image_h5(path,
             max_charge (bool): Specifies whether or not to return the training set's maximum charge.
             binary (bool): Specifies whether or not the data should be framed as two-class
                            (i.e. proton vs. nonproton).
+            reverse_labels (bool): If true, labels will be reversed.
 
         Returns:
             features (tuple): The requested data as a tuple of the form (train, test), where train and
@@ -108,6 +110,10 @@ def load_image_h5(path,
                 test_targets[i] = 1
 
         num_categories = 2
+
+    if reverse_labels:
+        train_targets = train_targets.max() - train_targets
+        test_targets = test_targets.max() - test_targets
 
     if categorical:
         train_targets = to_categorical(train_targets, num_categories).astype(np.int8)
