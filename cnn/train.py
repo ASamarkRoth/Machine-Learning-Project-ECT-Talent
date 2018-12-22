@@ -4,11 +4,15 @@ by `utils.data.load_image_h5`.
 
 Author: Ryan Strauss
 """
+import datetime
+import json
+import sys
 
 import click
 import numpy as np
 import os
 import tensorflow as tf
+import warnings
 from sklearn.utils.class_weight import compute_class_weight
 
 from utils.data import load_image_h5
@@ -41,11 +45,14 @@ TARGETS = 1
               help='Limit on the number of training examples to use during training.')
 @click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
 @click.option('--reverse_labels', is_flag=True, help='If flag is set, labels will be reversed.')
+@click.option('--validation_size', type=click.INT, default=None, nargs=1,
+              help='If None, a random 15% of the training data will be selected for validation. Otherwise, the '
+                   'the last `validation_size` examples from the training set will be used. This will '
+                   'override `validation_split`.')
 def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze,
-         examples_limit, seed, reverse_labels):
+         examples_limit, seed, reverse_labels, validation_size):
     """This script will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
     assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
-    assert 0 < validation_split < 1, 'validation_split must be in range (0, 1)'
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -62,9 +69,6 @@ def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr,
         train, _ = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
 
     num_categories = train[TARGETS].shape[1]
-
-    if examples_limit == -1:
-        examples_limit = train[TARGETS].shape[0]
 
     # Build model
     vgg16_base = tf.keras.applications.VGG16(include_top=False, input_shape=(128, 128, 3), weights='imagenet')
@@ -108,15 +112,51 @@ def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr,
     # Setup TensorBoard callback
     tb_callback = tf.keras.callbacks.TensorBoard(log_dir)
 
+    val = None
+
+    if validation_size is not None:
+        if validation_size >= train[TARGETS].shape[0]:
+            raise ValueError('The given validation size must be smaller than the size of the training set ({}).'.format(
+                train[TARGETS].shape[0]))
+        train = train[FEATURES][:-validation_size], train[TARGETS][:-validation_size]
+        val = train[FEATURES][-validation_size:], train[TARGETS][-validation_size:]
+
+    if examples_limit == -1:
+        examples_limit = train[TARGETS].shape[0]
+
+    if examples_limit > train[TARGETS].shape[0]:
+        warnings.warn('`examples_limit` is larger than the number of examples in the training set. The entire training '
+                      'set will be used.')
+        examples_limit = train[TARGETS].shape[0]
+
     # Train the model
-    model.fit(train[FEATURES][:examples_limit],
-              train[TARGETS][:examples_limit],
-              epochs=epochs,
-              batch_size=batch_size,
-              validation_split=validation_split,
-              verbose=1,
-              class_weight=class_weight,
-              callbacks=[tb_callback, ckpt_callback])
+    train_start_time = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
+
+    history = model.fit(train[FEATURES][:examples_limit],
+                        train[TARGETS][:examples_limit],
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        validation_split=validation_split,
+                        validation_data=val,
+                        verbose=1,
+                        class_weight=class_weight,
+                        callbacks=[tb_callback, ckpt_callback])
+
+    train_end_time = datetime.datetime.now().strftime("%I:%M%p on %B %d, %Y")
+
+    history_filename = os.path.join(log_dir, 'history.json')
+    info_filename = os.path.join(log_dir, 'info.txt')
+
+    with open(history_filename, 'w') as file:
+        json.dump(history.history, file)
+
+    with open(info_filename, 'w') as file:
+        file.write('***Training Info***\n')
+        file.write('Training Start: {}'.format(train_start_time))
+        file.write('Training End: {}\n'.format(train_end_time))
+        file.write('Arguments:\n')
+        for arg in sys.argv:
+            file.write('\t{}\n'.format(arg))
 
 
 if __name__ == '__main__':
