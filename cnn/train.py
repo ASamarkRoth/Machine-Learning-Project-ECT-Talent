@@ -118,8 +118,8 @@ def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr,
         if validation_size >= train[TARGETS].shape[0]:
             raise ValueError('The given validation size must be smaller than the size of the training set ({}).'.format(
                 train[TARGETS].shape[0]))
-        train = train[FEATURES][:-validation_size], train[TARGETS][:-validation_size]
         val = train[FEATURES][-validation_size:], train[TARGETS][-validation_size:]
+        train = train[FEATURES][:-validation_size], train[TARGETS][:-validation_size]
 
     if examples_limit == -1:
         examples_limit = train[TARGETS].shape[0]
