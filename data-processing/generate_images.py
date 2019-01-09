@@ -284,8 +284,7 @@ def simulated(projection, noise, data_dir, save_path, prefix):
     # Create junk events
     for i in range(len(proton_events)):
         xyzs = np.empty([1, 4])
-        if noise:
-            xyzs = dd.add_noise(xyzs).astype('float32')
+        xyzs = dd.add_noise(xyzs).astype('float32')
         data.append([xyzs, 2])
 
         if i % 50 == 0:
@@ -320,20 +319,20 @@ def simulated(projection, noise, data_dir, save_path, prefix):
 
     for i, event in enumerate(train):
         e = event[0]
-        if projection == 1:
+        if projection == 'zy':
             x = e[:, 2].flatten()
             z = e[:, 1].flatten()
             c = e[:, 3].flatten()
-        elif projection == 0:
+        elif projection == 'xy':
             x = e[:, 0].flatten()
             z = e[:, 1].flatten()
             c = e[:, 3].flatten()
         else:
             raise ValueError('Invalid projection value.')
         fig = plt.figure(figsize=(1, 1), dpi=128)
-        if projection == 1:
+        if projection == 'zy':
             plt.xlim(0.0, 1250.0)
-        elif projection == 0:
+        elif projection == 'xy':
             plt.xlim(-275.0, 275.0)
         plt.ylim((-275.0, 275.0))
         plt.axis('off')
@@ -351,20 +350,20 @@ def simulated(projection, noise, data_dir, save_path, prefix):
 
     for i, event in enumerate(test):
         e = event[0]
-        if projection == 1:
+        if projection == 'zy':
             x = e[:, 2].flatten()
             z = e[:, 1].flatten()
             c = e[:, 3].flatten()
-        elif projection == 0:
+        elif projection == 'xy':
             x = e[:, 0].flatten()
             z = e[:, 1].flatten()
             c = e[:, 3].flatten()
         else:
             raise ValueError('Invalid projection value.')
         fig = plt.figure(figsize=(1, 1), dpi=128)
-        if projection == 1:
+        if projection == 'zy':
             plt.xlim(0.0, 1250.0)
-        elif projection == 0:
+        elif projection == 'xy':
             plt.xlim(-275.0, 275.0)
         plt.ylim((-275.0, 275.0))
         plt.axis('off')
