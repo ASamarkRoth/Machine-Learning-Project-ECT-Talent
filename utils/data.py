@@ -96,7 +96,8 @@ def load_image_h5(path,
     train_targets = h5['train_targets'][:]
     test_features = h5['test_features'][:]
     test_targets = h5['test_targets'][:]
-    mc = h5['max_charge'][:][0]
+    if max_charge:
+        mc = h5['max_charge'][:][0]
     h5.close()
 
     num_categories = np.unique(train_targets).shape[0]
