@@ -34,8 +34,8 @@ def main(root_dir, json_filename):
             except json.JSONDecodeError:
                 continue
         plt.figure(figsize=(11, 6), dpi=200)
-        plt.plot(history['loss'], '-', label='Training Loss')
-        plt.plot(history['val_loss'], ':', color='r', label='Validation Loss')
+        plt.plot(history['loss'], 'o-', label='Training Loss')
+        plt.plot(history['val_loss'], 'o:', color='r', label='Validation Loss')
         plt.legend(loc='best')
         plt.title('Loss Curve')
         plt.xlabel('Epoch')
