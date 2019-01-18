@@ -31,7 +31,8 @@ def data_to_stream(data, batch_size):
         batch_size: batch size of returned stream
 
     Returns:
-        data_feeder: an iterable data stream
+        iterator: an iterable data stream
+        iterator_initializer_hook: a training hook to initialize the iterator at the start of training
     """
     iterator_initializer_hook = IteratorInitializerHook()
     with tf.device('/cpu:0'):
