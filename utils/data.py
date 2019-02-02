@@ -1,4 +1,4 @@
-"""Module used for loading data.
+"""Module for handling data.
 
 Author: Ryan Strauss
 """
@@ -14,6 +14,7 @@ CLASS_NAMES = ['proton', 'carbon', 'junk']
 
 
 class IteratorInitializerHook(tf.train.SessionRunHook):
+    """Handles the initialization of a data iterator at session start for a TFGAN model."""
     def __init__(self):
         super(IteratorInitializerHook, self).__init__()
         self.iterator_initializer_func = None
@@ -54,7 +55,7 @@ def decode_predictions(preds, top=3):
 
     Return:
         decoded_preds: A list of the top predictions, sorted from highest probability to lowest, as tuples
-                       with the class name and probability.
+        with the class name and probability.
     """
     decoded = [(CLASS_NAMES[i], p) for i, p in enumerate(preds)]
     decoded.sort(key=lambda o: o[1], reverse=True)
@@ -78,12 +79,14 @@ def load_image_h5(path,
             flatten (bool): If true, each training example will be flattened.
             max_charge (bool): Specifies whether or not to return the training set's maximum charge.
             binary (bool): Specifies whether or not the data should be framed as two-class
-                           (i.e. proton vs. nonproton).
+            (i.e. proton vs. nonproton).
             reverse_labels (bool): If true, labels will be reversed.
 
         Returns:
+            data (ndarray, optional): If loading unlabelled data, the only item returned will be an ndarray containing
+            that data.
             features (tuple): The requested data as a tuple of the form (train, test), where train and
-                                   test each have the form (X, y).
+            test each have the form (X, y).
             targets (tuple): The corresponding targets.
             max_charge (float, optional): The maximum charge from the returned training set, before normalization.
 
@@ -144,11 +147,11 @@ def load_discretized_data(dir,
             categorical (bool): Indicator of whether or not targets should be returned as a 2D one-hot encoded array.
             normalize (bool): Specifies whether or not to normalize the data.
             binary (bool): Specifies whether or not the data should be framed as two-class
-                           (i.e. proton vs. nonproton).
+            (i.e. proton vs. nonproton).
 
         Returns:
             features (tuple): The requested data as a tuple of the form (train, test), where train and
-                                   test each have the form (X, y).
+            test each have the form (X, y).
             targets (tuple): The corresponding targets.
 
     """
