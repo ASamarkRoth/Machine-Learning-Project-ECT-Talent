@@ -59,7 +59,9 @@ def main(data_dir, log_dir, hidden_layers, prefix, epochs, batch_size, rebalance
     # Build model
     model = tf.keras.Sequential()
 
-    for neurons in hidden_layers:
+    model.add(tf.keras.layers.Dense(hidden_layers[0], input_dim=train[FEATURES].shape[1], activation='relu'))
+    model.add(tf.keras.layers.Dropout(dropout))
+    for neurons in hidden_layers[1:]:
         model.add(tf.keras.layers.Dense(neurons, input_dim=train[FEATURES].shape[1], activation='relu'))
         model.add(tf.keras.layers.Dropout(dropout))
     model.add(tf.keras.layers.Dense(num_categories, activation='softmax'))

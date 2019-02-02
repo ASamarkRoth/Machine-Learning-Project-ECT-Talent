@@ -5,6 +5,7 @@ Author: Ryan Strauss
 import click
 import numpy as np
 import tensorflow as tf
+from scipy import sparse
 from sklearn.metrics import classification_report
 
 from utils.data import CLASS_NAMES, load_discretized_data
@@ -16,6 +17,9 @@ TARGETS = 1
 @click.command()
 @click.argument('model_file', type=click.Path(exists=True, file_okay=True, dir_okay=False), nargs=1)
 @click.argument('data_dir', type=click.Path(exists=True, file_okay=False, dir_okay=True), nargs=1)
+@click.option('--data_combine', is_flag=True,
+              help='If flag is set, the training and test sets within the HDF5 file pointed '
+                   'to by `data` will be combined into a single training set.')
 @click.option('--prefix', type=click.STRING, default='', nargs=1,
               help='Filename prefix of the data to be loaded. No prefix by default.')
 @click.option('--binary', type=click.BOOL, default=True, nargs=1,
@@ -23,7 +27,7 @@ TARGETS = 1
 @click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
               help='Limit on the number of examples to use during testing.')
 @click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
-def main(model_file, data_dir, prefix, binary, examples_limit, seed):
+def main(model_file, data_dir, data_combine, prefix, binary, examples_limit, seed):
     """This script will evaluate an FCNN classifier.
 
     Loss, accuracy, and classification metrics are printed to the console.
@@ -35,7 +39,11 @@ def main(model_file, data_dir, prefix, binary, examples_limit, seed):
     tf.set_random_seed(seed)
 
     # Load data
-    _, test = load_discretized_data(data_dir, prefix, categorical=True, binary=binary)
+    if data_combine:
+        a, b = load_discretized_data(data_dir, prefix, categorical=True, binary=binary)
+        test = sparse.vstack([a[FEATURES], b[FEATURES]]), np.concatenate([a[TARGETS], b[TARGETS]], axis=0)
+    else:
+        _, test = load_discretized_data(data_dir, prefix, categorical=True, binary=binary)
 
     if examples_limit == -1:
         examples_limit = test[TARGETS].shape[0]
