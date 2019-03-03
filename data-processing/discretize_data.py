@@ -13,9 +13,9 @@ from sklearn.utils import shuffle
 
 from utils import data_discretization as dd
 
-X_DISC = 20
-Y_DISC = 20
-Z_DISC = 20
+X_DISC = 30
+Y_DISC = 30
+Z_DISC = 30
 RUNS = ['0130', '0210']
 
 

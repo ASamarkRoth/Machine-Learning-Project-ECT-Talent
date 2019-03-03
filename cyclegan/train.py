@@ -7,7 +7,7 @@ import click
 import numpy as np
 import tensorflow as tf
 
-import networks
+import networks_cleaned as networks
 from utils.data import data_to_stream, load_image_h5
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -124,9 +124,14 @@ def _define_train_ops(cyclegan_model, cyclegan_loss, generator_lr, discriminator
               help='The maximum number of training examples to use for each domain.')
 @click.option('--checkpoint_freq', type=click.INT, default=900, nargs=1,
               help='Frequency, in seconds, that model weights are saved during training.')
+@click.option('--seed', type=click.INT, default=None, nargs=1)
 def main(data_real_path, data_sim_path, log_dir, batch_size, steps, generator_lr, discriminator_lr, cycle_loss_weight,
-         examples_limit, checkpoint_freq):
+         examples_limit, checkpoint_freq, seed):
     """Trains a CycleGAN model."""
+    # Set random seed
+    if seed:
+        tf.set_random_seed(seed)
+
     # Load data
     real = load_image_h5(data_real_path)
     sim = load_image_h5(data_sim_path)
@@ -139,7 +144,9 @@ def main(data_real_path, data_sim_path, log_dir, batch_size, steps, generator_lr
     # Process simulated data
     sim_filtered = np.expand_dims(sim[:, :, :, 0], 3)
     sim_filtered = (sim_filtered.astype('float64') - 127.5) / 127.5
-    data_sim = sim_filtered[:examples_limit]
+    blanks = np.ones((98000 - sim_filtered.shape[0], 128, 128, 1))
+    data_sim = np.concatenate([sim_filtered, blanks])
+    data_sim = data_sim[:examples_limit]
 
     real_data_iterator, real_iterator_init_hook = data_to_stream(data_real, batch_size)
     sim_data_iterator, sim_iterator_init_hook = data_to_stream(data_sim, batch_size)
