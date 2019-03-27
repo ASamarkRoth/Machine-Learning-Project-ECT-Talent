@@ -43,148 +43,45 @@ def instance_norm(x, epsilon=1e-5):
         return out
 
 
-def encoder(x, n_filters=32, k_size=3, normalizer_fn=instance_norm,
-            activation_fn=tf.nn.leaky_relu, scope=None, reuse=None):
-    with tf.variable_scope(scope or 'encoder', reuse=reuse):
-        h = tf.pad(x, [[0, 0], [k_size, k_size], [k_size, k_size], [0, 0]],
-                   "REFLECT")
-        h = layers.conv2d(
-            inputs=h,
-            num_outputs=n_filters,
-            kernel_size=7,
-            stride=1,
-            padding='VALID',
-            weights_initializer=tf.truncated_normal_initializer(stddev=0.02),
-            biases_initializer=None,
-            normalizer_fn=normalizer_fn,
-            activation_fn=activation_fn,
-            scope='1',
-            reuse=reuse)
-        h = layers.conv2d(
-            inputs=h,
-            num_outputs=n_filters * 2,
-            kernel_size=k_size,
-            stride=2,
-            weights_initializer=tf.truncated_normal_initializer(stddev=0.02),
-            biases_initializer=None,
-            normalizer_fn=normalizer_fn,
-            activation_fn=activation_fn,
-            scope='2',
-            reuse=reuse)
-        h = layers.conv2d(
-            inputs=h,
-            num_outputs=n_filters * 4,
-            kernel_size=k_size,
-            stride=2,
-            weights_initializer=tf.truncated_normal_initializer(stddev=0.02),
-            biases_initializer=None,
-            normalizer_fn=normalizer_fn,
-            activation_fn=activation_fn,
-            scope='3',
-            reuse=reuse)
-    return h
+def _cyclegan_resnet_generator(image, num_filters=32, kernel_size=3):
+    img_size = image.get_shape().as_list()[1]
+    with tf.contrib.framework.arg_scope(
+            [layers.conv2d, layers.conv2d_transpose],
+            weights_initializer=tf.truncated_normal_initializer(stddev=0.02), biases_initializer=None,
+            normalizer_fn=instance_norm, activation_fn=tf.nn.leaky_relu, kernel_size=kernel_size, reuse=None):
+        # ENCODER
+        with tf.variable_scope('encoder', reuse=None):
+            net = tf.pad(image, [[0, 0], [kernel_size, kernel_size], [kernel_size, kernel_size], [0, 0]], 'REFLECT')
+            net = layers.conv2d(net, num_filters, kernel_size=7, stride=1, padding='VALID', scope='conv0')
+            net = layers.conv2d(net, num_filters * 2, stride=2, scope='conv1')
+            net = layers.conv2d(net, num_filters * 4, stride=2, scope='conv2')
 
+        # TRANSFORM
+        for block in range(6 if img_size < 256 else 9):
+            with tf.variable_scope('residual_block_{}'.format(block), reuse=None):
+                r = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]], 'REFLECT')
+                r = layers.conv2d(r, num_filters * 4, padding='VALID', scope='conv0')
+                r = tf.pad(r, [[0, 0], [1, 1], [1, 1], [0, 0]], 'REFLECT')
+                r = layers.conv2d(r, num_filters * 4, padding='VALID', activation_fn=None, scope='conv1')
+                net = tf.add(r, net)
 
-def residual_block(x, n_channels=128, normalizer_fn=instance_norm,
-                   activation_fn=tf.nn.leaky_relu, kernel_size=3, scope=None, reuse=None):
-    with tf.variable_scope(scope or 'residual', reuse=reuse):
-        h = tf.pad(x, [[0, 0], [1, 1], [1, 1], [0, 0]], "REFLECT")
-        h = layers.conv2d(
-            inputs=h,
-            num_outputs=n_channels,
-            kernel_size=kernel_size,
-            weights_initializer=tf.truncated_normal_initializer(stddev=0.02),
-            biases_initializer=None,
-            normalizer_fn=normalizer_fn,
-            padding='VALID',
-            activation_fn=activation_fn,
-            scope='1',
-            reuse=reuse)
-        h = tf.pad(h, [[0, 0], [1, 1], [1, 1], [0, 0]], "REFLECT")
-        h = layers.conv2d(
-            inputs=h,
-            num_outputs=n_channels,
-            kernel_size=kernel_size,
-            weights_initializer=tf.truncated_normal_initializer(stddev=0.02),
-            biases_initializer=None,
-            normalizer_fn=normalizer_fn,
-            padding='VALID',
-            activation_fn=None,
-            scope='2',
-            reuse=reuse)
-        h = tf.add(x, h)
-    return h
+        # DECODER
+        with tf.variable_scope('decoder', reuse=None):
+            net = layers.conv2d_transpose(net, num_filters * 2, stride=2, scope='conv0')
+            net = layers.conv2d_transpose(net, num_filters, stride=2, scope='conv1')
+            net = tf.pad(net, [[0, 0], [kernel_size, kernel_size], [kernel_size, kernel_size], [0, 0]], 'REFLECT')
+            net = layers.conv2d(net, 1, kernel_size=7, stride=1, padding='VALID', activation_fn=tf.nn.tanh,
+                                scope='conv2')
 
-
-def transform(x, img_size=256, reuse=None):
-    h = x
-    if img_size >= 256:
-        n_blocks = 9
-    else:
-        n_blocks = 6
-    for block_i in range(n_blocks):
-        with tf.variable_scope('block_{}'.format(block_i), reuse=reuse):
-            h = residual_block(h, reuse=reuse)
-    return h
-
-
-def decoder(x, n_filters=32, k_size=3, normalizer_fn=instance_norm,
-            activation_fn=tf.nn.leaky_relu, scope=None, reuse=None):
-    with tf.variable_scope(scope or 'decoder', reuse=reuse):
-        h = layers.conv2d_transpose(
-            inputs=x,
-            num_outputs=n_filters * 2,
-            kernel_size=k_size,
-            stride=2,
-            weights_initializer=tf.truncated_normal_initializer(stddev=0.02),
-            biases_initializer=None,
-            normalizer_fn=normalizer_fn,
-            activation_fn=activation_fn,
-            scope='1',
-            reuse=reuse)
-        h = layers.conv2d_transpose(
-            inputs=h,
-            num_outputs=n_filters,
-            kernel_size=k_size,
-            stride=2,
-            weights_initializer=tf.truncated_normal_initializer(stddev=0.02),
-            biases_initializer=None,
-            normalizer_fn=normalizer_fn,
-            activation_fn=activation_fn,
-            scope='2',
-            reuse=reuse)
-        h = tf.pad(h, [[0, 0], [k_size, k_size], [k_size, k_size], [0, 0]],
-                   "REFLECT")
-        h = layers.conv2d(
-            inputs=h,
-            num_outputs=1,
-            kernel_size=7,
-            stride=1,
-            weights_initializer=tf.truncated_normal_initializer(stddev=0.02),
-            biases_initializer=None,
-            padding='VALID',
-            normalizer_fn=normalizer_fn,
-            activation_fn=tf.nn.tanh,
-            scope='3',
-            reuse=reuse)
-    return h
-
-
-def cyclegan_resnet_generator(x, scope=None, reuse=None):
-    img_size = x.get_shape().as_list()[1]
-    with tf.variable_scope(scope or 'generator', reuse=reuse):
-        h = encoder(x, reuse=reuse)
-        h = transform(h, img_size, reuse=reuse)
-        h = decoder(h, reuse=reuse)
-    return h
+    return net
 
 
 def generator(x):
     """A thin wrapper around the CycleGAN Resnet Generator."""
-    return cyclegan_resnet_generator(x)
+    return _cyclegan_resnet_generator(x)
 
 
-def pix2pix_discriminator(net, num_filters, padding=2, is_training=False):
+def _pix2pix_discriminator(net, num_filters, padding=2, is_training=False):
     """Creates the Image2Image Translation Discriminator.
 
     Args:
@@ -250,4 +147,4 @@ def pix2pix_discriminator(net, num_filters, padding=2, is_training=False):
 
 def discriminator(image_batch, unused_conditioning=None):
     """A thin wrapper around the discriminator to conform to TFGAN API."""
-    return pix2pix_discriminator(image_batch, [32, 64, 64])
+    return _pix2pix_discriminator(image_batch, [32, 64, 64])

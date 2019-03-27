@@ -2,16 +2,23 @@
 
 Author: Ryan Strauss
 """
+from datetime import datetime
 
-import click
 import numpy as np
+import os
 import tensorflow as tf
+from sacred import Experiment
+from sacred.observers import MongoObserver
+from sacred.stflow import LogFileWriter
 
-import networks_cleaned as networks
 from utils.data import data_to_stream, load_image_h5
 
+ex = Experiment('cyclegan_image_projection')
+maindir = '/'.join(ex.mainfile.filename.split('/')[:-1])
+ex.add_source_file(os.path.join(maindir, 'networks.py'))
+ex.add_source_file(os.path.join(maindir, '../utils/data.py'))
+ex.observers.append(MongoObserver.create(url='localhost:27017', db_name='attpc-event-generation'))
 tf.logging.set_verbosity(tf.logging.INFO)
-
 tfgan = tf.contrib.gan
 
 
@@ -25,6 +32,7 @@ def _define_model(images_x, images_y):
     Returns:
         A `CycleGANModel` namedtuple.
     """
+    import networks
     cyclegan_model = tfgan.cyclegan_model(
         generator_fn=networks.generator,
         discriminator_fn=networks.discriminator,
@@ -111,26 +119,44 @@ def _define_train_ops(cyclegan_model, cyclegan_loss, generator_lr, discriminator
     return train_ops
 
 
-@click.command()
-@click.argument('data_real_path', type=click.Path(file_okay=True, dir_okay=False, exists=True), nargs=1)
-@click.argument('data_sim_path', type=click.Path(file_okay=True, dir_okay=False, exists=True), nargs=1)
-@click.argument('log_dir', type=click.Path(file_okay=False, dir_okay=True, exists=False), nargs=1)
-@click.option('--batch_size', type=click.INT, default=1, help='Batch size to be used for training.')
-@click.option('--steps', type=click.INT, default=100000, help='Number of training steps.')
-@click.option('--generator_lr', type=click.FLOAT, default=0.0002, help='The generator learning rate.')
-@click.option('--discriminator_lr', type=click.FLOAT, default=0.0001, help='The discriminator learning rate.')
-@click.option('--cycle_loss_weight', type=click.FLOAT, default=10., help='The weight of cycle consistency loss.')
-@click.option('--examples_limit', type=click.INT, default=98000,
-              help='The maximum number of training examples to use for each domain.')
-@click.option('--checkpoint_freq', type=click.INT, default=900, nargs=1,
-              help='Frequency, in seconds, that model weights are saved during training.')
-@click.option('--seed', type=click.INT, default=None, nargs=1)
-def main(data_real_path, data_sim_path, log_dir, batch_size, steps, generator_lr, discriminator_lr, cycle_loss_weight,
-         examples_limit, checkpoint_freq, seed):
+@ex.config
+def config():
+    data_real_path = None  # Path to file containing images of real data. Should be updated in config.
+    data_sim_path = None  # Path to file containing images of simulated data. Should be updated in config.
+    logdir = 'logs/'  # Base directory in which the model's log directory should be created.
+    # Directory to which TensorBoard logs and model checkpoints should be saved.
+    model_logdir = os.path.join(logdir, ex.path, datetime.now().strftime('%Y%m%d%H%M%S'))
+    examples_limit = np.inf  # Limit on the number of training examples to use.
+    blanks = 0  # Number of blank images to add to the simulated data
+
+    steps = 100000  # Number of training iterations.
+    checkpoint_freq = 900  # Frequency, in seconds, that model weights are saved during training.
+
+    generator_lr = 0.0002  # Learning rate for the generator networks.
+    discriminator_lr = 0.0001  # Learning rate for the discriminator networks.
+    cycle_loss_weight = 10.  # Weighting hyperparameter for the cycle consistency loss.
+    batch_size = 1
+
+
+@ex.config_hook
+def config_hook(config, command_name, logger):
+    if command_name == 'main':
+        if config['data_real_path'] is None:
+            logger.error('Path to real data must be provided.')
+            exit(1)
+        if config['data_sim_path'] is None:
+            logger.error('Path to simulated data must be provided.')
+            exit(1)
+
+    return config
+
+
+@ex.automain
+@LogFileWriter(ex)
+def main(data_real_path, data_sim_path, model_logdir, batch_size, steps, generator_lr, discriminator_lr,
+         cycle_loss_weight, examples_limit, checkpoint_freq, blanks, seed, _rnd):
     """Trains a CycleGAN model."""
-    # Set random seed
-    if seed:
-        tf.set_random_seed(seed)
+    tf.set_random_seed(seed)
 
     # Load data
     real = load_image_h5(data_real_path)
@@ -139,14 +165,19 @@ def main(data_real_path, data_sim_path, log_dir, batch_size, steps, generator_lr
     # Process real data
     data_real = np.expand_dims(real[:, :, :, 0], 3)
     data_real = (data_real.astype('float64') - 127.5) / 127.5
-    data_real = data_real[:examples_limit]
 
     # Process simulated data
     sim_filtered = np.expand_dims(sim[:, :, :, 0], 3)
     sim_filtered = (sim_filtered.astype('float64') - 127.5) / 127.5
-    blanks = np.ones((98000 - sim_filtered.shape[0], 128, 128, 1))
+    blanks = np.ones((blanks, 128, 128, 1), dtype='float64')
     data_sim = np.concatenate([sim_filtered, blanks])
+    _rnd.shuffle(data_sim)
+
+    examples_limit = min(examples_limit, len(data_real), len(data_sim))
+    data_real = data_real[:examples_limit]
     data_sim = data_sim[:examples_limit]
+
+    assert data_real.shape == data_sim.shape
 
     real_data_iterator, real_iterator_init_hook = data_to_stream(data_real, batch_size)
     sim_data_iterator, sim_iterator_init_hook = data_to_stream(data_sim, batch_size)
@@ -175,7 +206,7 @@ def main(data_real_path, data_sim_path, log_dir, batch_size, steps, generator_lr
 
     tfgan.gan_train(
         train_ops,
-        logdir=log_dir,
+        logdir=model_logdir,
         save_checkpoint_secs=checkpoint_freq,
         get_hooks_fn=tfgan.get_sequential_train_hooks(train_steps),
         hooks=[
@@ -184,7 +215,3 @@ def main(data_real_path, data_sim_path, log_dir, batch_size, steps, generator_lr
             real_iterator_init_hook,
             sim_iterator_init_hook
         ])
-
-
-if __name__ == '__main__':
-    main()
