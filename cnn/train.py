@@ -15,6 +15,7 @@ import tensorflow as tf
 import warnings
 from sklearn.utils.class_weight import compute_class_weight
 
+from cyclegan.generate import noisify_simulated_images
 from utils.data import load_image_h5
 
 FEATURES = 0
@@ -49,8 +50,9 @@ TARGETS = 1
               help='If None, a random 15% of the training data will be selected for validation. Otherwise, the '
                    'the last `validation_size` examples from the training set will be used. This will '
                    'override `validation_split`.')
+@click.option('--cyclegan_enhancer', type=click.Path(), default=None, nargs=1)
 def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze,
-         examples_limit, seed, reverse_labels, validation_size):
+         examples_limit, seed, reverse_labels, validation_size, cyclegan_enhancer):
     """This script will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
     assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
 
@@ -67,6 +69,12 @@ def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr,
         train = np.concatenate([a[FEATURES], b[FEATURES]], axis=0), np.concatenate([a[TARGETS], b[TARGETS]], axis=0)
     else:
         train, _ = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
+
+    if cyclegan_enhancer:
+        enhanced_images = noisify_simulated_images(cyclegan_enhancer, train[FEATURES])
+        train = enhanced_images, train[TARGETS]
+
+    train = train[FEATURES] / 255., train[TARGETS]
 
     num_categories = train[TARGETS].shape[1]
 
