@@ -23,9 +23,9 @@ def _cyclegan_resnet_generator(image, num_filters=32, kernel_size=3):
             [layers.conv2d, layers.conv2d_transpose],
             weights_initializer=tf.truncated_normal_initializer(stddev=0.02), biases_initializer=None,
             normalizer_fn=layers.instance_norm, normalizer_params=_instance_norm_params, activation_fn=tf.nn.leaky_relu,
-            kernel_size=kernel_size, reuse=None):
+            kernel_size=kernel_size):
         # ENCODER
-        with tf.variable_scope('encoder', reuse=None):
+        with tf.variable_scope('encoder'):
             net = tf.pad(image, [[0, 0], [kernel_size, kernel_size], [kernel_size, kernel_size], [0, 0]], 'REFLECT')
             net = layers.conv2d(net, num_filters, kernel_size=7, stride=1, padding='VALID', scope='conv0')
             net = layers.conv2d(net, num_filters * 2, stride=2, scope='conv1')
@@ -33,7 +33,7 @@ def _cyclegan_resnet_generator(image, num_filters=32, kernel_size=3):
 
         # TRANSFORM
         for block in range(6 if img_size < 256 else 9):
-            with tf.variable_scope('residual_block_{}'.format(block), reuse=None):
+            with tf.variable_scope('residual_block_{}'.format(block)):
                 r = tf.pad(net, [[0, 0], [1, 1], [1, 1], [0, 0]], 'REFLECT')
                 r = layers.conv2d(r, num_filters * 4, padding='VALID', scope='conv0')
                 r = tf.pad(r, [[0, 0], [1, 1], [1, 1], [0, 0]], 'REFLECT')
@@ -41,7 +41,7 @@ def _cyclegan_resnet_generator(image, num_filters=32, kernel_size=3):
                 net = tf.add(r, net)
 
         # DECODER
-        with tf.variable_scope('decoder', reuse=None):
+        with tf.variable_scope('decoder'):
             net = layers.conv2d_transpose(net, num_filters * 2, stride=2, scope='conv0')
             net = layers.conv2d_transpose(net, num_filters, stride=2, scope='conv1')
             net = tf.pad(net, [[0, 0], [kernel_size, kernel_size], [kernel_size, kernel_size], [0, 0]], 'REFLECT')
@@ -78,11 +78,10 @@ def _pix2pix_discriminator(net, num_filters, padding=2, is_training=False):
 
     with tf.contrib.framework.arg_scope(
             [layers.conv2d],
-            kernel_size=[4, 4], stride=2, padding='valid', activation_fn=tf.nn.leaky_relu,
-            normalizer_fn=None):
+            kernel_size=[4, 4], stride=2, padding='valid', activation_fn=tf.nn.leaky_relu):
         # No normalization on the input layer.
         net = tf.pad(net, [[0, 0], [padding, padding], [padding, padding], [0, 0]], 'REFLECT')
-        net = layers.conv2d(net, num_filters[0], normalizer_fn=None, scope='conv0')
+        net = layers.conv2d(net, num_filters[0], scope='conv0')
 
         for i in range(1, num_layers - 1):
             net = tf.pad(net, [[0, 0], [padding, padding], [padding, padding], [0, 0]], 'REFLECT')
@@ -94,8 +93,7 @@ def _pix2pix_discriminator(net, num_filters, padding=2, is_training=False):
 
         # 1-dim logits, stride 1, no activation, no normalization.
         net = tf.pad(net, [[0, 0], [padding, padding], [padding, padding], [0, 0]], 'REFLECT')
-        logits = layers.conv2d(net, 1, stride=1, activation_fn=None, normalizer_fn=None,
-                               scope='conv{}'.format(num_layers))
+        logits = layers.conv2d(net, 1, stride=1, activation_fn=None, scope='conv{}'.format(num_layers))
 
     return tf.sigmoid(logits)
 

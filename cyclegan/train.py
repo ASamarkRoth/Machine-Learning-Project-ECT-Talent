@@ -127,7 +127,6 @@ def config():
     # Directory to which TensorBoard logs and model checkpoints should be saved.
     model_logdir = os.path.join(logdir, ex.path, datetime.now().strftime('%Y%m%d%H%M%S'))
     examples_limit = np.inf  # Limit on the number of training examples to use.
-    blanks = 0  # Number of blank images to add to the simulated data
 
     steps = 100000  # Number of training iterations.
     checkpoint_freq = 900  # Frequency, in seconds, that model weights are saved during training.
@@ -154,7 +153,7 @@ def config_hook(config, command_name, logger):
 @ex.automain
 @LogFileWriter(ex)
 def main(data_real_path, data_sim_path, model_logdir, batch_size, steps, generator_lr, discriminator_lr,
-         cycle_loss_weight, examples_limit, checkpoint_freq, blanks, seed, _rnd):
+         cycle_loss_weight, examples_limit, checkpoint_freq, seed, _rnd):
     """Trains a CycleGAN model."""
     tf.set_random_seed(seed)
 
@@ -167,10 +166,10 @@ def main(data_real_path, data_sim_path, model_logdir, batch_size, steps, generat
     data_real = (data_real.astype('float64') - 127.5) / 127.5
 
     # Process simulated data
-    sim_filtered = np.expand_dims(sim[:, :, :, 0], 3)
-    sim_filtered = (sim_filtered.astype('float64') - 127.5) / 127.5
-    blanks = np.ones((blanks, 128, 128, 1), dtype='float64')
-    data_sim = np.concatenate([sim_filtered, blanks])
+    data_sim = np.expand_dims(sim[:, :, :, 0], 3)
+    data_sim = (data_sim.astype('float64') - 127.5) / 127.5
+
+    _rnd.shuffle(data_real)
     _rnd.shuffle(data_sim)
 
     examples_limit = min(examples_limit, len(data_real), len(data_sim))
