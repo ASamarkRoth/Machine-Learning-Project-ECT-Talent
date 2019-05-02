@@ -29,11 +29,11 @@ def generator(noise, is_training=True):
         with tf.contrib.framework.arg_scope([layers.batch_norm], is_training=is_training):
             net = layers.fully_connected(noise, 4 * 4 * 1024)
             net = tf.reshape(net, shape=(-1, 4, 4, 1024))
-            net = layers.conv2d_transpose(net, 256, [5, 5], stride=2)
-            net = layers.conv2d_transpose(net, 128, [5, 5], stride=2)
-            net = layers.conv2d_transpose(net, 64, [5, 5], stride=2)
-            net = layers.conv2d_transpose(net, 32, [5, 5], stride=2)
-            net = layers.conv2d_transpose(net, 1, [5, 5], stride=2, activation_fn=tf.nn.tanh, normalizer_fn=None)
+            net = layers.conv2d_transpose(net, 256, 5, stride=2)
+            net = layers.conv2d_transpose(net, 128, 5, stride=2)
+            net = layers.conv2d_transpose(net, 64, 5, stride=2)
+            net = layers.conv2d_transpose(net, 32, 5, stride=2)
+            net = layers.conv2d_transpose(net, 1, 5, stride=2, activation_fn=tf.nn.tanh, normalizer_fn=None)
 
     return net
 
@@ -48,7 +48,7 @@ def discriminator(img, unused_conditioning):
         use this argument.
 
     Returns:
-        Logits for the probability that the image is real.
+        Estimate of EM distance.
     """
     with tf.contrib.framework.arg_scope(
             [layers.conv2d, layers.fully_connected],

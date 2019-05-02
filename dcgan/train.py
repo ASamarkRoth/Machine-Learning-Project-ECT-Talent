@@ -5,42 +5,71 @@ that uses the Wasserstein loss (https://arxiv.org/abs/1701.07875).
 
 Author: Ryan Strauss
 """
-import click
+from datetime import datetime
+
 import numpy as np
 import os
 import tensorflow as tf
+from sacred import Experiment
+from sacred.observers import MongoObserver
+from sacred.stflow import LogFileWriter
 
 import networks
 from utils.data import data_to_stream, load_image_h5
 
-tf.logging.set_verbosity(tf.logging.INFO)
+ex = Experiment('dcgan_event_generation')
+ex.observers.append(MongoObserver.create(url='localhost:27017', db_name='attpc-event-generation'))
 
+tf.logging.set_verbosity(tf.logging.INFO)
 tfgan = tf.contrib.gan
 
 
-@click.command()
-@click.argument('data_path', type=click.Path(file_okay=True, dir_okay=False, exists=True), nargs=1)
-@click.argument('log_dir', type=click.Path(file_okay=False, dir_okay=True, exists=False), nargs=1)
-@click.option('--batch_size', type=click.INT, default=32, nargs=1, help='Batch size to be used for training.')
-@click.option('--latent_dim', type=click.INT, default=64, nargs=1, help='Dimension of the generator\'s input space.')
-@click.option('--steps', type=click.INT, default=60000, nargs=1, help='Number of training steps.')
-@click.option('--examples_limit', type=click.INT, default=98000, nargs=1,
-              help='Maximum number of training examples to use.')
-@click.option('--gradient_penalty', type=click.FLOAT, default=1.0, nargs=1,
-              help='Indicates how much to weight the gradient penalty.')
-@click.option('--generator_lr', type=click.FLOAT, default=0.001, nargs=1, help='Generator learning rate.')
-@click.option('--discriminator_lr', type=click.FLOAT, default=0.0001, nargs=1, help='Discriminator learning rate.')
-@click.option('--checkpoint_freq', type=click.INT, default=600, nargs=1,
-              help='Frequency, in seconds, that model weights are saved during training.')
-def main(data_path, batch_size, latent_dim, steps, examples_limit, log_dir, gradient_penalty, generator_lr,
-         discriminator_lr, checkpoint_freq):
+@ex.config
+def config():
+    data_path = None
+    logdir = None
+
+    batch_size = 32
+    latent_dim = 64
+    steps = 100000
+    gradient_penalty_weight = 1.
+    generator_lr = 0.001
+    discriminator_lr = 0.001
+
+    checkpoint_freq = 600
+    examples_limit = np.inf
+
+
+@ex.config_hook
+def config_hook(config, command_name, logger):
+    if command_name == 'main':
+        if config['data_path'] is None:
+            logger.error('Path to data must be provided.')
+            exit(1)
+        if config['logdir'] is None:
+            logger.error('A log directory must be provided.')
+            exit(1)
+
+    return config
+
+
+@ex.automain
+@LogFileWriter(ex)
+def main(data_path, batch_size, latent_dim, steps, examples_limit, gradient_penalty_weight, generator_lr,
+         discriminator_lr, checkpoint_freq, logdir, seed, _log):
     """Trains a DCGAN to generate CNN training images."""
+    tf.set_random_seed(seed)
+
+    logdir = os.path.join(logdir, ex.path, datetime.now().strftime('%Y%m%d%H%M%S'))
+    _log.info('Logs will be saved to: {}'.format(logdir))
+
     # Load data
     real = load_image_h5(data_path)
 
     # Process real data
     real_data = np.expand_dims(real[:, :, :, 0], 3)
     real_data = (real_data.astype('float32') - 127.5) / 127.5
+    examples_limit = min(examples_limit, len(real_data))
     real_data = real_data[:examples_limit]
 
     # Create data iterator
@@ -59,7 +88,7 @@ def main(data_path, batch_size, latent_dim, steps, examples_limit, log_dir, grad
     # Set up loss functions
     gan_loss = tfgan.gan_loss(
         gan_model,
-        gradient_penalty_weight=gradient_penalty,
+        gradient_penalty_weight=gradient_penalty_weight,
         add_summaries=True)
 
     # Configure training ops
@@ -74,19 +103,15 @@ def main(data_path, batch_size, latent_dim, steps, examples_limit, log_dir, grad
     status_message = tf.string_join(['Starting train step: ', tf.as_string(tf.train.get_or_create_global_step())],
                                     name='status_message')
 
-    if os.path.exists(log_dir):
-        print('Log directory already exists. Exiting to avoid overwriting other model.')
+    if os.path.exists(logdir):
+        _log.warning('Log directory already exists. Exiting to avoid overwriting other model.')
         exit(0)
 
     # Begin training
     tfgan.gan_train(
         train_ops,
-        logdir=log_dir,
+        logdir=logdir,
         save_checkpoint_secs=checkpoint_freq,
         hooks=[tf.train.StopAtStepHook(num_steps=steps),
                tf.train.LoggingTensorHook([status_message], every_n_iter=100),
                iterator_init_hook])
-
-
-if __name__ == '__main__':
-    main()
