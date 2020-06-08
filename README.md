@@ -14,9 +14,22 @@ See [Machine Learning Methods for Track Classification in the AT-TPC][1].
 * `click`
 * `pandas`
 * `numpy`
-* `tensorflow`
+* `tensorflow<2`
 * `matplotlib`
 * `h5py`
 * `pyyaml`
 * `scipy`
 * `scikit-learn`
+
+
+## Usage
+
+The following shows how to run the CNN training script. You can pass the `--help`
+flag to see all available options in the command-line interface.
+
+```
+python cnn/train.py
+```
+
+You should make sure that the repository's root directory has been added to the
+Python path in order to properly run the scripts.
