@@ -1,35 +1,39 @@
-[1]: https://arxiv.org/abs/1810.10350
-[2]: https://github.com/ATTPC/pytpc
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/)
 
-# Machine Learning Methods for AT-TPC Event Classification
+# MachineLearningECT - AT-TPC project - Anton Såmark-Roth
 
-This repository contains research code that explores the use of machine learning methods to classify AT-TPC events
-based on the product of the reaction. This work was done using data from Argon 46 experiments.
+## Set `PYTHONPATH`
 
-See [Machine Learning Methods for Track Classification in the AT-TPC][1].
-
-## Prerequisites
-
-* `pytpc` (found [here][2])
-* `click`
-* `pandas`
-* `numpy`
-* `tensorflow<2`
-* `matplotlib`
-* `h5py`
-* `pyyaml`
-* `scipy`
-* `scikit-learn`
-
-
-## Usage
-
-The following shows how to run the CNN training script. You can pass the `--help`
-flag to see all available options in the command-line interface.
-
-```
-python cnn/train.py
+```bash
+source set_python_path.sh
 ```
 
-You should make sure that the repository's root directory has been added to the
-Python path in order to properly run the scripts.
+## Running the Jupyter-Notebook
+
+You can run it in the web browser on mybinder (without installing anything) by clicking the link [here](https://mybinder.org/) (ignore the following in that case). 
+
+It is possible to run the notebook on your local computer as follows:
+
+1. Install [miniconda3](https://conda.io/miniconda.html) alternatively the full [anaconda3](https://www.anaconda.com/download) environment on your laptop (the latter is **much** larger).
+2. [Download]() this repository.
+3. Install and activate the `machine_learning` environment described by the file [`environment.yml`](/environment.yml)  by running the following in a terminal:
+
+```bash
+conda env create -f environment.yml
+source activate machine_learning
+./postBuild
+```
+4. Run the notebook via `jupyter-lab`
+
+It is preferable to further configure _nbstripout_ for the git repo. If active, this program strips the notebook from the outputs and makes it easier for collaboration and merging. It is performed as follows: 
+
+```bash
+nbstripout --install
+```
+
+Note: it is however placed in the `postBuild` file.
+
+
+## Useful links
+
+Lectures on active targets: https://nucleartalent.github.io/MachineLearningECT/doc/pub/Day8/html/Day8.html
