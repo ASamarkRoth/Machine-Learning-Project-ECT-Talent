@@ -21,36 +21,37 @@ FEATURES = 0
 TARGETS = 1
 
 
-@click.command()
-@click.argument('data', type=click.Path(exists=True, file_okay=True, dir_okay=False), nargs=1)
-@click.argument('log_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
-@click.option('--epochs', type=click.INT, default=10, nargs=1, help='Number of training epochs.')
-@click.option('--batch_size', type=click.INT, default=32, nargs=1, help='Batch size to use for training.')
-@click.option('--data_combine', is_flag=True,
-              help='If flag is set, the training and test sets within the HDF5 file pointed '
-                   'to by `data` will be combined into a single training set.')
-@click.option('--rebalance', is_flag=True,
-              help='If flag is set, class weighting will be used during training to rebalance '
-                   'an uneven distribution of classes in the training set.')
-@click.option('--binary', type=click.BOOL, default=True, nargs=1,
-              help='If true, the labels will be collapsed to binary values, where any non-zero label will become a 1.')
-@click.option('--lr', type=click.FLOAT, default=0.00001, nargs=1, help='Learning rate to use during training.')
-@click.option('--decay', type=click.FLOAT, default=0., nargs=1, help='Learning rate decay to use during training.')
-@click.option('--validation_split', type=click.FLOAT, default=0.15, nargs=1,
-              help='Percentage of training set to use for validation. Should be in range (0, 1). Defaults to 0.15.')
-@click.option('--freeze', is_flag=True,
-              help='If flag is set, the convolutional layers of the model will be frozen. Only the '
-                   'fully-connected classification layers will have their weights updated.')
-@click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
-              help='Limit on the number of training examples to use during training.')
-@click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
-@click.option('--reverse_labels', is_flag=True, help='If flag is set, labels will be reversed.')
-@click.option('--validation_size', type=click.INT, default=None, nargs=1,
-              help='If None, a random 15% of the training data will be selected for validation. Otherwise, the '
-                   'the last `validation_size` examples from the training set will be used. This will '
-                   'override `validation_split`.')
-def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze,
-         examples_limit, seed, reverse_labels, validation_size):
+#@click.command()
+#@click.argument('data', type=click.Path(exists=True, file_okay=True, dir_okay=False), nargs=1)
+#@click.argument('log_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
+#@click.option('--epochs', type=click.INT, default=10, nargs=1, help='Number of training epochs.')
+#@click.option('--batch_size', type=click.INT, default=32, nargs=1, help='Batch size to use for training.')
+#@click.option('--data_combine', is_flag=True,
+#              help='If flag is set, the training and test sets within the HDF5 file pointed '
+#                   'to by `data` will be combined into a single training set.')
+#@click.option('--rebalance', is_flag=True,
+#              help='If flag is set, class weighting will be used during training to rebalance '
+#                   'an uneven distribution of classes in the training set.')
+#@click.option('--binary', type=click.BOOL, default=True, nargs=1,
+#              help='If true, the labels will be collapsed to binary values, where any non-zero label will become a 1.')
+#@click.option('--lr', type=click.FLOAT, default=0.00001, nargs=1, help='Learning rate to use during training.')
+#@click.option('--decay', type=click.FLOAT, default=0., nargs=1, help='Learning rate decay to use during training.')
+#@click.option('--validation_split', type=click.FLOAT, default=0.15, nargs=1,
+#              help='Percentage of training set to use for validation. Should be in range (0, 1). Defaults to 0.15.')
+#@click.option('--freeze', is_flag=True,
+#              help='If flag is set, the convolutional layers of the model will be frozen. Only the '
+#                   'fully-connected classification layers will have their weights updated.')
+#@click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
+#              help='Limit on the number of training examples to use during training.')
+#@click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
+#@click.option('--reverse_labels', is_flag=True, help='If flag is set, labels will be reversed.')
+#@click.option('--validation_size', type=click.INT, default=None, nargs=1,
+#              help='If None, a random 15% of the training data will be selected for validation. Otherwise, the '
+#                   'the last `validation_size` examples from the training set will be used. This will '
+#                   'override `validation_split`.')
+#def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze,
+def main(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=False, binary=False, lr=0.00001, decay=0., validation_split=0.15, freeze=False,
+         examples_limit=-1, seed=71, reverse_labels=True, validation_size=None):
     """This script will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
     assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
 
