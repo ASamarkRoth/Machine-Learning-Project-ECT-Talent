@@ -66,12 +66,16 @@ def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr,
         a, b = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
         train = np.concatenate([a[FEATURES], b[FEATURES]], axis=0), np.concatenate([a[TARGETS], b[TARGETS]], axis=0)
     else:
-        train, _ = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
+        train, _ = load_image_h5(data, categorical=False, binary=binary, reverse_labels=reverse_labels)
 
-    num_categories = train[TARGETS].shape[1]
+    print("TARGETS shape:", len(train),train[TARGETS].shape)
+    print("FEATURES shape:", len(train),train[FEATURES].shape, train[FEATURES].shape[1:])
+    #num_categories = train[TARGETS].shape[1]
+    num_categories = 1
+
 
     # Build model
-    vgg16_base = tf.keras.applications.VGG16(include_top=False, input_shape=(128, 128, 3), weights='imagenet')
+    vgg16_base = tf.keras.applications.VGG16(include_top=False, input_shape=train[FEATURES].shape[1:], weights='imagenet')
     net = vgg16_base.output
     net = tf.keras.layers.Flatten()(net)
     net = tf.keras.layers.Dense(256, activation=tf.nn.relu)(net)
@@ -85,13 +89,15 @@ def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr,
             layer.trainable = False
 
     opt = tf.keras.optimizers.Adam(lr=lr, decay=decay)
-    loss = 'binary_crossentropy' if num_categories == 2 else 'categorical_crossentropy'
+    loss = 'binary_crossentropy'# if num_categories == 2 else 'categorical_crossentropy'
+
+    print("Loss:", loss)
 
     model.compile(loss=loss,
                   optimizer=opt,
                   metrics=['accuracy'])
 
-    os.makedirs(os.path.join(log_dir, 'ckpt'))
+    os.makedirs(os.path.join(log_dir, 'ckpt'), exist_ok=True)
     ckpt_path = os.path.join(log_dir, 'ckpt', 'epoch-{epoch:02d}.h5')
 
     # Get class weights
