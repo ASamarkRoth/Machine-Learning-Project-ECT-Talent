@@ -22,9 +22,6 @@ from sklearn.utils import shuffle
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-# Real data runs to use
-RUNS = ['0130', '0210']
-
 DATA_FILE = "Mg22_alphaalpha_digiSim.h5"
 
 X_COL, Y_COL, Z_COL, CHARGE_COL = 0, 1, 2, 4
@@ -107,13 +104,13 @@ def make_train_test_data(data, fraction_train=0.8):
 
     return train, test
 
-def make_image_features_targets(data, projection):
+def make_image_features_targets(data, projection, image_size):
     """Generate image features and targets in numpy arrays to be used in training and evaluation"""
     
     print("Make image features and targets ...")
     
     # Make numpy sets
-    features = np.empty((len(data), 128, 128, 3), dtype=np.uint8)
+    features = np.empty((len(data), image_size, image_size, 3), dtype=np.uint8)
     targets = np.empty((len(data),), dtype=np.uint8)
 
     for i, event in enumerate(data):
@@ -130,7 +127,7 @@ def make_image_features_targets(data, projection):
             c = e[:, CHARGE_COL].flatten()
         else:
             raise ValueError('Invalid projection value.')
-        fig = plt.figure(figsize=(1, 1), dpi=128)
+        fig = plt.figure(figsize=(1, 1), dpi=image_size)
         if projection == 'zy':
             plt.xlim(0.0, 1250.0)
         elif projection == 'xy':
@@ -147,7 +144,7 @@ def make_image_features_targets(data, projection):
     return features, targets
 
     
-def generate_image_data_set(projection, data_dir, save_path, prefix):
+def generate_image_data_set(projection, data_dir, save_path, prefix, image_size):
     
     data = list(read_and_label_data(data_dir).values()) #from dict to list
     print("Shape:\n\tdata:", len(data))
@@ -156,8 +153,8 @@ def generate_image_data_set(projection, data_dir, save_path, prefix):
     
     print("Shape:\n\ttrain:", len(train), "\n\ttest:", len(test))
     
-    train_features, train_targets = make_image_features_targets(train, 'xy')
-    test_features, test_targets = make_image_features_targets(test, 'xy')
+    train_features, train_targets = make_image_features_targets(train, 'xy', image_size)
+    test_features, test_targets = make_image_features_targets(test, 'xy', image_size)
     
     print('Saving to HDF5 file...')
 
@@ -183,12 +180,13 @@ def generate_image_data_set(projection, data_dir, save_path, prefix):
               help='Where to save the generated data.')
 @click.option('--prefix', type=click.STRING, default='',
               help='Prefix for the saved file names and/or files to read in. By default, there is no prefix.')
-def main(projection, data_dir, save_dir, prefix):
+@click.option('--image_size', type=click.INT, default=48, nargs=1, help='Pixels per side of image, must be at least 48x48 for transfer learning with imagenet.')
+def main(projection, data_dir, save_dir, prefix, image_size):
     """
     This script will generate and save images from processed and simulated ATTPC event data to be used for CNN training.
     """
     
-    generate_image_data_set(projection, data_dir, save_dir, prefix)
+    generate_image_data_set(projection, data_dir, save_dir, prefix, image_size)
 
 if __name__ == '__main__':
     main()

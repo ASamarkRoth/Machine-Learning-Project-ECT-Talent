@@ -8,43 +8,10 @@ import os
 import tensorflow as tf
 from scipy.sparse import load_npz
 from sklearn.preprocessing import Normalizer
-from tensorflow.keras.utils import to_categorical
+from sklearn.preprocessing import LabelEncoder
+#from tensorflow.keras.utils import to_categorical
 
-CLASS_NAMES = ['proton', 'carbon', 'junk']
-
-
-class IteratorInitializerHook(tf.train.SessionRunHook):
-    """Handles the initialization of a data iterator at session start for a TFGAN model."""
-    def __init__(self):
-        super(IteratorInitializerHook, self).__init__()
-        self.iterator_initializer_func = None
-
-    def after_create_session(self, session, coord):
-        # Initialize the iterator with the data feed_dict
-        self.iterator_initializer_func(session)
-
-
-def data_to_stream(data, batch_size):
-    """Transforms a numpy array to a batched data stream.
-
-    Parameters:
-        data: a numpy array
-        batch_size: batch size of returned stream
-
-    Returns:
-        iterator: an iterable data stream
-        iterator_initializer_hook: a training hook to initialize the iterator at the start of training
-    """
-    iterator_initializer_hook = IteratorInitializerHook()
-    with tf.device('/cpu:0'):
-        placeholder = tf.placeholder(data.dtype, data.shape)
-        dataset = tf.data.Dataset.from_tensor_slices(placeholder)
-        dataset = dataset.batch(batch_size, drop_remainder=True).repeat()
-        iterator = dataset.make_initializable_iterator()
-        iterator_initializer_hook.iterator_initializer_func = lambda sess: sess.run(iterator.initializer,
-                                                                                    feed_dict={placeholder: data})
-    return iterator, iterator_initializer_hook
-
+CLASS_NAMES = ['beam', 'reaction']
 
 def decode_predictions(preds, top=3):
     """Decodes an array of predictions by returning the top classes (as specified) with their class names.
@@ -106,30 +73,32 @@ def load_image_h5(path,
 
     num_categories = np.unique(train_targets).shape[0]
 
-    if binary:
-        for i in range(train_targets.shape[0]):
-            if train_targets[i] != 0:
-                train_targets[i] = 1
-        for i in range(test_targets.shape[0]):
-            if test_targets[i] != 0:
-                test_targets[i] = 1
+    print("Number of categories:", num_categories)
 
-        num_categories = 2
+    #if binary:
+    #    for i in range(train_targets.shape[0]):
+    #        if train_targets[i] != 0:
+    #            train_targets[i] = 1
+    #    for i in range(test_targets.shape[0]):
+    #        if test_targets[i] != 0:
+    #            test_targets[i] = 1
 
-    if reverse_labels:
-        train_targets = train_targets.max() - train_targets
-        test_targets = test_targets.max() - test_targets
+    #    num_categories = 2
 
-    if categorical:
-        train_targets = to_categorical(train_targets, num_categories).astype(np.int8)
-        test_targets = to_categorical(test_targets, num_categories).astype(np.int8)
+    #if reverse_labels:
+    #    train_targets = train_targets.max() - train_targets
+    #    test_targets = test_targets.max() - test_targets
 
-    if flatten:
-        train_features = np.reshape(train_features, (len(train_features), -1))
-        test_features = np.reshape(test_features, (len(test_features), -1))
+    #if categorical:
+    #    train_targets = to_categorical(train_targets, num_categories).astype(np.int8)
+    #    test_targets = to_categorical(test_targets, num_categories).astype(np.int8)
 
-    if max_charge:
-        return (train_features, train_targets), (test_features, test_targets), mc
+    #if flatten:
+    #    train_features = np.reshape(train_features, (len(train_features), -1))
+    #    test_features = np.reshape(test_features, (len(test_features), -1))
+
+    #if max_charge:
+    #    return (train_features, train_targets), (test_features, test_targets), mc
 
     return (train_features, train_targets), (test_features, test_targets)
 
@@ -181,8 +150,8 @@ def load_discretized_data(dir,
 
         num_categories = 2
 
-    if categorical:
-        train_targets = to_categorical(train_targets, num_categories).astype(np.int8)
-        test_targets = to_categorical(test_targets, num_categories).astype(np.int8)
+    #if categorical:
+    #    train_targets = to_categorical(train_targets, num_categories).astype(np.int8)
+    #    test_targets = to_categorical(test_targets, num_categories).astype(np.int8)
 
     return (train_features, train_targets), (test_features, test_targets)
