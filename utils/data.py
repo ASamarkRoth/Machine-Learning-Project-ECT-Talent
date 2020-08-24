@@ -58,6 +58,9 @@ def load_image_h5(path,
             max_charge (float, optional): The maximum charge from the returned training set, before normalization.
 
     """
+    
+    print("Loading images from file:", path)
+    
     h5 = h5py.File(path, 'r')
 
     if 'images' in h5:
@@ -73,7 +76,7 @@ def load_image_h5(path,
 
     num_categories = np.unique(train_targets).shape[0]
 
-    print("Number of categories:", num_categories)
+    print("\tNumber of categories:", num_categories)
 
     #if binary:
     #    for i in range(train_targets.shape[0]):

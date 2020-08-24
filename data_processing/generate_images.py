@@ -72,17 +72,17 @@ def read_and_label_data(data_dir):
     print("\tDone")
     return data
 
-def transform_normalize_data(data):
-    """ Transform, shuffle and normalize for image data"""
+def transform_data(data):
+    """ Transform, shuffle and scale for image data"""
     
-    print("Transform, shuffle and normalize data ...")
+    print("Transform, shuffle and scale data ...")
     
     #transform
     log = np.vectorize(_l)
     for event in data:
         event[0][:, CHARGE_COL] = log(event[0][:, CHARGE_COL])
         
-    # Normalize
+    # scale
     max_charge = np.array(list(map(lambda x: x[0][:, CHARGE_COL].max(), data))).max() #wrt to max in data set
 
     for e in data:
@@ -148,7 +148,7 @@ def generate_image_data_set(projection, data_dir, save_path, prefix, image_size)
     
     data = list(read_and_label_data(data_dir).values()) #from dict to list
     print("Shape:\n\tdata:", len(data))
-    data, max_charge = transform_normalize_data(data)
+    data, max_charge = transform_data(data)
     train, test = make_train_test_data(data, fraction_train=0.8)
     
     print("Shape:\n\ttrain:", len(train), "\n\ttest:", len(test))
