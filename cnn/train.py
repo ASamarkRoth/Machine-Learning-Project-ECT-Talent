@@ -14,6 +14,7 @@ import os
 import tensorflow as tf
 import warnings
 from sklearn.utils.class_weight import compute_class_weight
+import sklearn.preprocessing
 
 from utils.data import load_image_h5
 
@@ -21,38 +22,42 @@ FEATURES = 0
 TARGETS = 1
 
 
-#@click.command()
-#@click.argument('data', type=click.Path(exists=True, file_okay=True, dir_okay=False), nargs=1)
-#@click.argument('log_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
-#@click.option('--epochs', type=click.INT, default=10, nargs=1, help='Number of training epochs.')
-#@click.option('--batch_size', type=click.INT, default=32, nargs=1, help='Batch size to use for training.')
-#@click.option('--data_combine', is_flag=True,
-#              help='If flag is set, the training and test sets within the HDF5 file pointed '
-#                   'to by `data` will be combined into a single training set.')
-#@click.option('--rebalance', is_flag=True,
-#              help='If flag is set, class weighting will be used during training to rebalance '
-#                   'an uneven distribution of classes in the training set.')
-#@click.option('--binary', type=click.BOOL, default=True, nargs=1,
-#              help='If true, the labels will be collapsed to binary values, where any non-zero label will become a 1.')
-#@click.option('--lr', type=click.FLOAT, default=0.00001, nargs=1, help='Learning rate to use during training.')
-#@click.option('--decay', type=click.FLOAT, default=0., nargs=1, help='Learning rate decay to use during training.')
-#@click.option('--validation_split', type=click.FLOAT, default=0.15, nargs=1,
-#              help='Percentage of training set to use for validation. Should be in range (0, 1). Defaults to 0.15.')
-#@click.option('--freeze', is_flag=True,
-#              help='If flag is set, the convolutional layers of the model will be frozen. Only the '
-#                   'fully-connected classification layers will have their weights updated.')
-#@click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
-#              help='Limit on the number of training examples to use during training.')
-#@click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
-#@click.option('--reverse_labels', is_flag=True, help='If flag is set, labels will be reversed.')
-#@click.option('--validation_size', type=click.INT, default=None, nargs=1,
-#              help='If None, a random 15% of the training data will be selected for validation. Otherwise, the '
-#                   'the last `validation_size` examples from the training set will be used. This will '
-#                   'override `validation_split`.')
-#def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze,
-def main(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=False, binary=False, lr=0.00001, decay=0., validation_split=0.15, freeze=False,
+@click.command()
+@click.argument('data', type=click.Path(exists=True, file_okay=True, dir_okay=False), nargs=1)
+@click.argument('log_dir', type=click.Path(exists=False, file_okay=False, dir_okay=True), nargs=1)
+@click.option('--epochs', type=click.INT, default=10, nargs=1, help='Number of training epochs.')
+@click.option('--batch_size', type=click.INT, default=32, nargs=1, help='Batch size to use for training.')
+@click.option('--data_combine', is_flag=True,
+              help='If flag is set, the training and test sets within the HDF5 file pointed '
+                   'to by `data` will be combined into a single training set.')
+@click.option('--rebalance', is_flag=True,
+              help='If flag is set, class weighting will be used during training to rebalance '
+                   'an uneven distribution of classes in the training set.')
+@click.option('--binary', type=click.BOOL, default=True, nargs=1,
+              help='If true, the labels will be collapsed to binary values, where any non-zero label will become a 1.')
+@click.option('--lr', type=click.FLOAT, default=0.00001, nargs=1, help='Learning rate to use during training.')
+@click.option('--decay', type=click.FLOAT, default=0., nargs=1, help='Learning rate decay to use during training.')
+@click.option('--validation_split', type=click.FLOAT, default=0.15, nargs=1,
+              help='Percentage of training set to use for validation. Should be in range (0, 1). Defaults to 0.15.')
+@click.option('--freeze', is_flag=True,
+              help='If flag is set, the convolutional layers of the model will be frozen. Only the '
+                   'fully-connected classification layers will have their weights updated.')
+@click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
+              help='Limit on the number of training examples to use during training.')
+@click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
+@click.option('--reverse_labels', is_flag=True, help='If flag is set, labels will be reversed.')
+@click.option('--validation_size', type=click.INT, default=None, nargs=1,
+              help='If None, a random 15% of the training data will be selected for validation. Otherwise, the '
+                   'the last `validation_size` examples from the training set will be used. This will '
+                   'override `validation_split`.')
+
+def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze, examples_limit, seed, reverse_labels, validation_size):
+    train(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze, examples_limit, seed, reverse_labels, validation_size)
+
+
+def train(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=False, binary=False, lr=0.00001, decay=0., validation_split=0.15, freeze=False,
          examples_limit=-1, seed=71, reverse_labels=True, validation_size=None):
-    """This script will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
+    """This function will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
     assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
 
     if not os.path.exists(log_dir):
@@ -60,7 +65,7 @@ def main(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=
 
     # Set random seeds
     np.random.seed(seed)
-    tf.set_random_seed(seed)
+    tf.random.set_seed(seed)
 
     # Load data
     if data_combine:
@@ -68,6 +73,8 @@ def main(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=
         train = np.concatenate([a[FEATURES], b[FEATURES]], axis=0), np.concatenate([a[TARGETS], b[TARGETS]], axis=0)
     else:
         train, _ = load_image_h5(data, categorical=False, binary=binary, reverse_labels=reverse_labels)
+        
+    #train = sklearn.preprocessing.StandardScaler().fit_transform(train)
 
     print("TARGETS shape:", len(train),train[TARGETS].shape)
     print("FEATURES shape:", len(train),train[FEATURES].shape, train[FEATURES].shape[1:])
@@ -81,7 +88,7 @@ def main(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=
     net = tf.keras.layers.Flatten()(net)
     net = tf.keras.layers.Dense(256, activation=tf.nn.relu)(net)
     net = tf.keras.layers.Dropout(0.5)(net)
-    preds = tf.keras.layers.Dense(num_categories, activation=tf.nn.softmax)(net)
+    preds = tf.keras.layers.Dense(num_categories, activation=tf.nn.sigmoid)(net) #should use softmax?
     model = tf.keras.Model(vgg16_base.input, preds)
 
     # Freeze convolutional layers if needed
@@ -112,7 +119,7 @@ def main(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=
     # Setup checkpoint callback
     ckpt_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_path,
                                                        save_weights_only=False,
-                                                       period=1,
+                                                       save_frequency=1,
                                                        save_best_only=False,
                                                        monitor='val_loss')
 
@@ -153,6 +160,9 @@ def main(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=
 
     history_filename = os.path.join(log_dir, 'history.json')
     info_filename = os.path.join(log_dir, 'info.txt')
+    
+    model_filename = os.path.join(log_dir, 'saved_model.h5')
+    model.save(model_filename)
 
     with open(history_filename, 'w') as file:
         json.dump(history.history, file)

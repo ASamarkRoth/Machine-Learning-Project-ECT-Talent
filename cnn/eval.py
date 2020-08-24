@@ -26,7 +26,10 @@ TARGETS = 1
 @click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
 @click.option('--reverse_labels', is_flag=True, help='If flag is set, labels will be reversed.')
 def main(model_file, data, data_combine, binary, examples_limit, seed, reverse_labels):
-    """This script will evaluate a CNN classifier.
+    eval(model_file, data, data_combine, binary, examples_limit, seed, reverse_labels)
+    
+def eval(model_file, data, data_combine=False, binary=True, examples_limit=-1, seed=71, reverse_labels=False):
+    """This function will evaluate a CNN classifier.
 
     Loss, accuracy, and classification metrics are printed to the console.
     """
@@ -35,7 +38,7 @@ def main(model_file, data, data_combine, binary, examples_limit, seed, reverse_l
 
     # Set random seeds
     np.random.seed(seed)
-    tf.set_random_seed(seed)
+    tf.random.set_seed(seed)
 
     # Load data
     if data_combine:
@@ -54,23 +57,23 @@ def main(model_file, data, data_combine, binary, examples_limit, seed, reverse_l
     loss, acc = model.evaluate(test[FEATURES][:examples_limit], test[TARGETS][:examples_limit])
 
     # Make predictions
-    preds = np.argmax(model.predict(test[FEATURES][:examples_limit]), axis=1)
-
-    if binary:
-        if reverse_labels:
-            target_names = [CLASS_NAMES[-1], 'non-' + CLASS_NAMES[-1]]
-        else:
-            target_names = [CLASS_NAMES[0], 'non-' + CLASS_NAMES[0]]
-    else:
-        target_names = CLASS_NAMES
+    preds = np.round(model.predict(test[FEATURES][:examples_limit]))
+    
+    #if binary:
+    #    if reverse_labels:
+    #        target_names = [CLASS_NAMES[-1], 'non-' + CLASS_NAMES[-1]]
+    #    else:
+    #        target_names = [CLASS_NAMES[0], 'non-' + CLASS_NAMES[0]]
+    #else:
+    #    target_names = CLASS_NAMES
+    
+    target_names = CLASS_NAMES
 
     if reverse_labels:
         target_names = target_names[::-1]
 
     # Get classification metrics
-    report = classification_report(np.argmax(test[TARGETS][:examples_limit], axis=1), preds,
-                                   target_names=target_names,
-                                   digits=2)
+    report = classification_report(test[TARGETS][:examples_limit], preds, target_names=target_names, digits=2)
 
     # Print the results
     print('****Evaluation Report****')
