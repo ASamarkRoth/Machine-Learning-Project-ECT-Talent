@@ -145,13 +145,14 @@ def make_image_features_targets(data, projection, image_size):
 
     
 def generate_image_data_set(projection, data_dir, save_path, prefix, image_size):
+    print("Generating image data set ...")
     
     data = list(read_and_label_data(data_dir).values()) #from dict to list
-    print("Shape:\n\tdata:", len(data))
+    #print("Shape:\n\tdata:", len(data))
     data, max_charge = transform_data(data)
     train, test = make_train_test_data(data, fraction_train=0.8)
     
-    print("Shape:\n\ttrain:", len(train), "\n\ttest:", len(test))
+    #print("Shape:\n\ttrain:", len(train), "\n\ttest:", len(test))
     
     train_features, train_targets = make_image_features_targets(train, 'xy', image_size)
     test_features, test_targets = make_image_features_targets(test, 'xy', image_size)
