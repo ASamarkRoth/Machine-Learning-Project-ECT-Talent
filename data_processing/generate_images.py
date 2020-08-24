@@ -3,7 +3,7 @@
 
 Author: Anton Såmark-Roth
 
-Orignal Author: Ryan Strauss
+Original Author: Ryan Strauss
 """
 import math
 
@@ -54,7 +54,7 @@ def get_label(key):
         return None
     
 def read_and_label_data(data_dir):
-    """Read data into numpy arrays and label it. Return list with data and labels."""
+    """Read data into numpy arrays and label it. Return dictionary with data and labels."""
     print('Processing data...')
     data = {}
     
