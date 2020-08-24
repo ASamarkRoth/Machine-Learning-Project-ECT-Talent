@@ -7,8 +7,9 @@ import pickle
 import click
 import numpy as np
 from sklearn.metrics import classification_report
+from sklearn.metrics import plot_confusion_matrix
 
-from utils.data import CLASS_NAMES, load_discretized_data
+from data_processing.data import CLASS_NAMES, load_discretized_data
 
 FEATURES = 0
 TARGETS = 1
@@ -28,30 +29,30 @@ TARGETS = 1
 def main(model_file, data_dir, prefix, binary, examples_limit, seed):
     eval(model_file, data_dir, prefix, binary, examples_limit, seed)
     
-def eval(model_file, data_dir, prefix='', binary=True, examples_limit=-1, seed=71):
+def eval(model_file, data, name='LogisticRegression', binary=True, examples_limit=-1, seed=71):
     """This function will evaluate a logistic regression classifier.
 
     Accuracy and classification metrics are printed to the console.
     """
-    assert model_file.endswith('.p'), 'model_file must point to a pickle file'
+    assert model_file.endswith('.pkl'), 'model_file must point to a pickle file'
 
     # Set random seeds
     np.random.seed(seed)
 
     # Load data
-    _, test = load_discretized_data(data_dir, prefix=prefix, binary=binary)
+    #_, test = load_discretized_data(data_dir, prefix=prefix, binary=binary)
 
     if examples_limit == -1:
-        examples_limit = test[TARGETS].shape[0]
+        examples_limit = data[TARGETS].shape[0]
 
     # Load the model
     model = pickle.load(open(model_file, 'rb'))
 
     # Evaluate the model
-    acc = model.score(test[FEATURES][:examples_limit], test[TARGETS][:examples_limit])
+    acc = model.score(data[FEATURES][:examples_limit], data[TARGETS][:examples_limit])
 
     # Make predictions
-    preds = model.predict(test[FEATURES][:examples_limit])
+    preds = model.predict(data[FEATURES][:examples_limit])
 
     #if binary:
     #    target_names = [CLASS_NAMES[0], 'non-' + CLASS_NAMES[0]]
@@ -61,14 +62,15 @@ def eval(model_file, data_dir, prefix='', binary=True, examples_limit=-1, seed=7
     target_names = CLASS_NAMES
 
     # Get classification metrics
-    report = classification_report(test[TARGETS][:examples_limit], preds,
+    report = classification_report(data[TARGETS][:examples_limit], preds,
                                    target_names=target_names,
                                    digits=2)
+    
+    plot_confusion_matrix(model, data[FEATURES][:examples_limit], data[TARGETS][:examples_limit], display_labels=CLASS_NAMES)
 
     # Print the results
-    print('****Evaluation Report****')
+    print("\nClassification Report for: {}\n".format(name))
     print('Accuracy: {}\n'.format(acc))
-    print('Classification Report:\n')
     print(report)
 
 
