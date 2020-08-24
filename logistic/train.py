@@ -9,6 +9,7 @@ import click
 import numpy as np
 import os
 from sklearn.linear_model import LogisticRegressionCV
+from sklearn.linear_model import LogisticRegression
 
 from utils.data import load_discretized_data
 
@@ -29,8 +30,14 @@ TARGETS = 1
 @click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
               help='Limit on the number of training examples to use during training.')
 @click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
+
 def main(data_dir, log_dir, prefix, rebalance, binary, examples_limit, seed):
-    """This script will train a logistic regression classifier."""
+    train(data_dir, log_dir, prefix, rebalance, binary, examples_limit, seed)
+
+def train(data_dir, log_dir, prefix='', rebalance=False, binary=True, examples_limit=-1, seed=71,
+          solver='saga', penalty='l2', regularization_strength=20, cv_fold=5, max_iter=100, tol=1e-4,
+         ):
+    """This function will train a logistic regression classifier."""
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
@@ -49,7 +56,15 @@ def main(data_dir, log_dir, prefix, rebalance, binary, examples_limit, seed):
         class_weight = None
 
     # Build model
-    model = LogisticRegressionCV(solver='saga', n_jobs=-1, class_weight=class_weight)
+    model = LogisticRegressionCV(
+    #model = LogisticRegression(
+            solver='saga', n_jobs=-1, class_weight=class_weight,
+            penalty='l2', #regularization (penalization)
+            Cs=regularization_strength, #inverse regularization strength (if int, set in a scale)
+            cv=cv_fold, #cross-validation fold
+            max_iter=max_iter,
+            tol=1e-4
+            )
 
     # Train the model
     model.fit(train[FEATURES][:examples_limit],

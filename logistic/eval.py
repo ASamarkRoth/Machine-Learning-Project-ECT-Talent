@@ -24,8 +24,12 @@ TARGETS = 1
 @click.option('--examples_limit', type=click.INT, default=-1, nargs=1,
               help='Limit on the number of examples to use during testing.')
 @click.option('--seed', type=click.INT, default=71, nargs=1, help='Random seed.')
+
 def main(model_file, data_dir, prefix, binary, examples_limit, seed):
-    """This script will evaluate a logistic regression classifier.
+    eval(model_file, data_dir, prefix, binary, examples_limit, seed)
+    
+def eval(model_file, data_dir, prefix='', binary=True, examples_limit=-1, seed=71):
+    """This function will evaluate a logistic regression classifier.
 
     Accuracy and classification metrics are printed to the console.
     """
@@ -49,10 +53,12 @@ def main(model_file, data_dir, prefix, binary, examples_limit, seed):
     # Make predictions
     preds = model.predict(test[FEATURES][:examples_limit])
 
-    if binary:
-        target_names = [CLASS_NAMES[0], 'non-' + CLASS_NAMES[0]]
-    else:
-        target_names = CLASS_NAMES
+    #if binary:
+    #    target_names = [CLASS_NAMES[0], 'non-' + CLASS_NAMES[0]]
+    #else:
+    #    target_names = CLASS_NAMES
+        
+    target_names = CLASS_NAMES
 
     # Get classification metrics
     report = classification_report(test[TARGETS][:examples_limit], preds,

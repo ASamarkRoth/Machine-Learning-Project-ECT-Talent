@@ -127,8 +127,12 @@ def load_discretized_data(dir,
             targets (tuple): The corresponding targets.
 
     """
-    targets_filename = os.path.join(dir, prefix + 'targets.h5')
-    h5 = h5py.File(targets_filename, 'r')
+
+    filename = os.path.join(dir, prefix + 'voxels.h5')
+
+    print("Loading discretized data from:", filename)
+
+    h5 = h5py.File(filename, 'r')
     train_targets = h5['train_targets'][:]
     test_targets = h5['test_targets'][:]
     h5.close()
