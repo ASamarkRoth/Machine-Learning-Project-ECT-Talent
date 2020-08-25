@@ -16,7 +16,7 @@ import warnings
 from sklearn.utils.class_weight import compute_class_weight
 import sklearn.preprocessing
 
-from utils.data import load_image_h5
+from data_processing.data import load_image_h5
 
 FEATURES = 0
 TARGETS = 1
@@ -55,10 +55,10 @@ def main(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr,
     train(data, log_dir, epochs, batch_size, data_combine, rebalance, binary, lr, decay, validation_split, freeze, examples_limit, seed, reverse_labels, validation_size)
 
 
-def train(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=False, binary=False, lr=0.00001, decay=0., validation_split=0.15, freeze=False,
-         examples_limit=-1, seed=71, reverse_labels=True, validation_size=None):
+def train(train, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance=False, binary=False, lr=0.00001, decay=0., validation_split=0.15, freeze=False,
+         examples_limit=-1, seed=71, reverse_labels=True, validation_size=None, use_dropout=True):
     """This function will train a CNN classifier using the VGG16 architecture with ImageNet weights."""
-    assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
+    #assert data.endswith('.h5'), 'train_path must point to an HDF5 file'
 
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -67,12 +67,12 @@ def train(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance
     np.random.seed(seed)
     tf.random.set_seed(seed)
 
-    # Load data
-    if data_combine:
-        a, b = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
-        train = np.concatenate([a[FEATURES], b[FEATURES]], axis=0), np.concatenate([a[TARGETS], b[TARGETS]], axis=0)
-    else:
-        train, _ = load_image_h5(data, categorical=False, binary=binary, reverse_labels=reverse_labels)
+    ## Load data
+    #if data_combine:
+    #    a, b = load_image_h5(data, categorical=True, binary=binary, reverse_labels=reverse_labels)
+    #    train = np.concatenate([a[FEATURES], b[FEATURES]], axis=0), np.concatenate([a[TARGETS], b[TARGETS]], axis=0)
+    #else:
+    #    train, _ = load_image_h5(data, categorical=False, binary=binary, reverse_labels=reverse_labels)
         
     #train = sklearn.preprocessing.StandardScaler().fit_transform(train)
 
@@ -87,7 +87,8 @@ def train(data, log_dir, epochs=10, batch_size=32, data_combine=False, rebalance
     net = vgg16_base.output
     net = tf.keras.layers.Flatten()(net)
     net = tf.keras.layers.Dense(256, activation=tf.nn.relu)(net)
-    net = tf.keras.layers.Dropout(0.5)(net)
+    if use_dropout:
+        net = tf.keras.layers.Dropout(0.5)(net)
     preds = tf.keras.layers.Dense(num_categories, activation=tf.nn.sigmoid)(net) #should use softmax?
     model = tf.keras.Model(vgg16_base.input, preds)
 
