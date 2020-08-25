@@ -9,8 +9,61 @@ import tensorflow as tf
 from scipy.sparse import load_npz
 from sklearn.preprocessing import Normalizer
 from sklearn.preprocessing import LabelEncoder
+import re
+import pandas as pd
+
+DATA_FILE = "Mg22_alphaalpha_digiSim.h5"
+
+X_COL = 0
+Y_COL = 1
+Z_COL = 2
+CHARGE_COL = 4
 
 CLASS_NAMES = ['beam', 'reaction']
+
+def get_event_by_index(hf, i):
+    return hf["Event_[{}]".format(i)][:]
+
+def get_event_from_key(key):
+    re_m = re.match("Event_\[(\d*)\]", key)
+    if re_m:
+        return int(re_m.groups()[0])
+    else: return None
+
+def get_label(key):
+    """ Return label for an event number: 
+            even: beam = 0
+            odd: reaction = 1
+    """
+    re_m = re.match("Event_\[(\d*)\]", key)
+    if re_m:
+        event = int(re_m.groups()[0])
+        return event % 2
+    else:
+        print("WARNING: could not determine label for key:", key)
+        return None
+    
+def get_label_name(key):
+    return CLASS_NAMES[get_label(key)]
+    
+def read_and_label_data(data_dir):
+    """Read data into numpy arrays and label it. Return dictionary with data and labels."""
+    print('Reading and labelling data...')
+    data = {}
+    
+    filename = os.path.join(data_dir, DATA_FILE)
+    h5_file = h5py.File(filename, "r")
+
+    for key in h5_file.keys():
+        xyzs = np.asarray(pd.DataFrame(h5_file[key][:]))
+        if xyzs.shape[0] > 0:
+            #data.append([xyzs, get_label(key)])
+            data[get_event_from_key(key)] = ([xyzs, get_label(key)])
+        else:
+            print("WARNING,", key, "has no pads firing. Removing event ...")
+    h5_file.close()
+    print("\tDone")
+    return data
 
 def load_image_h5(path,
                   categorical=False,
