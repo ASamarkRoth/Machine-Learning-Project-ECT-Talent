@@ -14,13 +14,13 @@ import pandas as pd
 import scipy as sp
 from sklearn.utils import shuffle
 
-import data_processing.generate_images as gi
+from data_processing.data import read_and_label_data, X_COL, Y_COL, Z_COL, CHARGE_COL
 
 import math
 
-X_COL, Y_COL, Z_COL, CHARGE_COL = 0, 1, 2, 4
-
-DATA_FILE = "Mg22_alphaalpha_digiSim.h5"
+# Currently we're setting the image pixel values as the logarithm of the charge!
+def _l(a):
+    return 0 if a == 0 else math.log10(a)
 
 def generate_voxelised_data_set(data_dir, save_dir, prefix, nbr_bins=20):
     print("Generating voxelised data set ...")
