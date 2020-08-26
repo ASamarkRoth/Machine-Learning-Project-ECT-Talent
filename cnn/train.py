@@ -89,7 +89,7 @@ def train(train, log_dir, epochs=10, batch_size=32, data_combine=False, rebalanc
     net = tf.keras.layers.Dense(256, activation=tf.nn.relu)(net)
     if use_dropout:
         net = tf.keras.layers.Dropout(0.5)(net)
-    preds = tf.keras.layers.Dense(num_categories, activation=tf.nn.sigmoid)(net) #should use softmax?
+    preds = tf.keras.layers.Dense(num_categories, activation=tf.nn.sigmoid)(net) 
     model = tf.keras.Model(vgg16_base.input, preds)
 
     # Freeze convolutional layers if needed
@@ -100,14 +100,25 @@ def train(train, log_dir, epochs=10, batch_size=32, data_combine=False, rebalanc
     opt = tf.keras.optimizers.Adam(lr=lr, decay=decay)
     loss = 'binary_crossentropy'# if num_categories == 2 else 'categorical_crossentropy'
 
-    print("Loss:", loss)
+    #print("Loss:", loss)
 
     model.compile(loss=loss,
                   optimizer=opt,
                   metrics=['accuracy'])
+    
+    print(model.summary())
 
-    os.makedirs(os.path.join(log_dir, 'ckpt'), exist_ok=True)
-    ckpt_path = os.path.join(log_dir, 'ckpt', 'epoch-{epoch:02d}.h5')
+    #os.makedirs(os.path.join(log_dir, 'ckpt'), exist_ok=True)
+    #ckpt_path = os.path.join(log_dir, 'ckpt', 'epoch-{epoch:02d}.h5')
+    
+    log_run = "freeze{}_dropout{}_lr{}_decay{}_samples{}".format(freeze, use_dropout, lr, decay, examples_limit)
+    #print("Log for run:", log_run)
+    
+    log_dir = os.path.join(log_dir, log_run, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    os.makedirs(log_dir, exist_ok=True)
+    print("\nWriting fits to:", log_dir)
+    ckpt_path = os.path.join(log_dir, 'epoch-{epoch:02d}.h5')
+    print("Checkpoint path:", ckpt_path, "\n")
 
     # Get class weights
     if rebalance:
