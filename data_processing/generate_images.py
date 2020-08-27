@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 def _l(a):
     return 0 if a == 0 else math.log10(a)
 
-def transform_data(data):
+def transform_data(data, max_charge=None):
     """ Transform, shuffle and scale for image data"""
     
     print("Transform, shuffle and scale data ...")
@@ -37,7 +37,8 @@ def transform_data(data):
         event[0][:, CHARGE_COL] = log(event[0][:, CHARGE_COL])
         
     # scale
-    max_charge = np.array(list(map(lambda x: x[0][:, CHARGE_COL].max(), data))).max() #wrt to max in data set
+    if max_charge is None:
+        max_charge = np.array(list(map(lambda x: x[0][:, CHARGE_COL].max(), data))).max() #wrt to max in data set
 
     for e in data:
         for point in e[0]:
@@ -103,8 +104,9 @@ def generate_image_data_set(projection, data_dir, save_path, prefix, image_size)
     
     data = list(read_and_label_data(data_dir).values()) #from dict to list
     #print("Shape:\n\tdata:", len(data))
-    data, max_charge = transform_data(data)
     train, test = make_train_test_data(data, fraction_train=0.8)
+    train, max_charge = transform_data(train)
+    test, max_charge = transform_data(test, max_charge=max_charge)
     
     #print("Shape:\n\ttrain:", len(train), "\n\ttest:", len(test))
     

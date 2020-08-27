@@ -30,8 +30,7 @@ def generate_voxelised_data_set(data_dir, save_dir, prefix, nbr_bins=20):
     # Create empty array to hold data
     data = []
 
-    run_filename = os.path.join(data_dir, DATA_FILE)
-    raw_data = list(gi.read_and_label_data(data_dir).values())
+    raw_data = list(read_and_label_data(data_dir).values())
     for i, l in enumerate(raw_data):
         xyzs = raw_data[i][0]
         data.append([discretize_grid_charge(xyzs, X_DISC, Y_DISC, Z_DISC), raw_data[i][1]])
@@ -116,7 +115,9 @@ def discretize_grid_charge(xyz, x_disc, y_disc, z_disc):
         assert z == z_bucket
 
         # scaling by factor of 1000
-        charges.append(point[CHARGE_COL] / 1000)
+        #charges.append(point[CHARGE_COL] / 1000)
+        # log10 scaling
+        charges.append(np.log10(point[CHARGE_COL]))
 
     cols = buckets
     rows = np.zeros(len(cols))
