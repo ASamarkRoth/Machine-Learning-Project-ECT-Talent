@@ -24,6 +24,9 @@ CLASS_NAMES = ['beam', 'reaction']
 def get_event_by_index(hf, i):
     return hf["Event_[{}]".format(i)][:]
 
+def get_key_from_index(i):
+    return "Event_[{}]".format(i)
+
 def get_event_from_key(key):
     re_m = re.match("Event_\[(\d*)\]", key)
     if re_m:
