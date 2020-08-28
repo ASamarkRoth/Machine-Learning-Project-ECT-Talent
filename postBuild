@@ -1,5 +1,10 @@
 #!/bin/sh
 
-#nbstripout --install
 pip install tensorflow==2.2.0
 pip install Keras==2.4.3
+
+#downloading cnn saved model
+wget https://lu.box.com/s/2ljszayb05n7o6i8ww64npd650fyjkfu
+mv 2ljszayb05n7o6i8ww64npd650fyjkfu ./cnn/logs/CNN_xy_freezeFalse_dropoutTrue_lr1e-05_decay0.0_samples-1_saved_model.h5
+
+#nbstripout --install
