@@ -1,3 +1,5 @@
 #!/bin/sh
 
-nbstripout --install
+#nbstripout --install
+pip install tensorflow==2.2.0
+pip install Keras==2.4.3
