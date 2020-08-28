@@ -1,16 +1,14 @@
-[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ASamarkRoth/Machine-Learning-Project-ECT-Talent/master?urlpath=lab)
 
 # MachineLearningECT - AT-TPC project - Anton Såmark-Roth
 
-## Set `PYTHONPATH`
+A project in the "Machine Learning and Data Analysis for Nuclear Physics, a Nuclear TALENT" Course at the ECT*, June 22 to July 3 2020 ([https://github.com/NuclearTalent/MachineLearningECT](https://github.com/NuclearTalent/MachineLearningECT)).
 
-```bash
-source set_python_path.sh
-```
+The project report is a `Jupyter-Notebook`, see the section below on how to run it.
 
-## Running the Jupyter-Notebook
+## Running the Jupyter-Notebooks
 
-You can run it in the web browser on mybinder (without installing anything) by clicking the link [here](https://mybinder.org/) (ignore the following in that case). 
+You can run it in the web browser on binder (without installing anything) by clicking the link [here](https://mybinder.org/v2/gh/ASamarkRoth/Machine-Learning-Project-ECT-Talent/master?urlpath=lab) and once the `Jupyter-Lab` session starts, open the file `Report.ipynb` (ignore all the following in that case). 
 
 It is possible to run the notebook on your local computer as follows:
 
@@ -32,8 +30,3 @@ nbstripout --install
 ```
 
 Note: it is however placed in the `postBuild` file.
-
-
-## Useful links
-
-Lectures on active targets: https://nucleartalent.github.io/MachineLearningECT/doc/pub/Day8/html/Day8.html
