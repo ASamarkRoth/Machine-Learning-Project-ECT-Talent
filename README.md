@@ -21,12 +21,12 @@ conda env create -f environment.yml
 source activate machine_learning
 ./postBuild
 ```
-4. Run the notebook via `jupyter-lab`
 
-It is preferable to further configure _nbstripout_ for the git repo. If active, this program strips the notebook from the outputs and makes it easier for collaboration and merging. It is performed as follows: 
+## Further development
+It is preferable to further configure _nbstripout_ for the git repo if you want to work on the `ipynb`s. If active, this program strips the notebook from the outputs and makes it easier for collaboration and merging. It is performed as follows: 
 
 ```bash
 nbstripout --install
 ```
 
-Note: it is however placed in the `postBuild` file.
+Note: it is however placed in the `postBuild` file (currently commented out).
